@@ -6,6 +6,7 @@ th9120mv;"Air temperature 2 m above ground; deviation of the homogeneous monthly
 [Explanation of Paramter Abbreviations](https://data.geo.admin.ch/ch.meteoschweiz.ogd-nbcn/ogd-nbcn_meta_parameters.csv)
 
 ## massbalance_observation.csv
+
 Winter/Summer/Annual mass balance (Bw) → millimeters water equivalent (mm w.e.), representing the amount of snow accumulated in winter converted to the equivalent depth of water.
 
 
