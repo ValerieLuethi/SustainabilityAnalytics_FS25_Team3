@@ -1,1 +1,7 @@
-Place data files here
+# Info about Raw Data
+## jungfraujoch_temperature.csv
+Start: 01/01/1933, End: 01/07/2025, Frequency: Monthly <br />
+ths200m0;"Air temperature 2 m above ground; homogeneous monthly mean";temperature;M;1;Float;°C <br />
+th9120mv;"Air temperature 2 m above ground; deviation of the homogeneous monthly mean to the norm 9120";temperature;M;1;Float;°C
+[Explanation of Paramter Abbreviations](https://data.geo.admin.ch/ch.meteoschweiz.ogd-nbcn/ogd-nbcn_meta_parameters.csv)
+
