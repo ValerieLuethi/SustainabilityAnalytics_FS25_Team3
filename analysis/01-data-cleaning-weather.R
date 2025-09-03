@@ -3,6 +3,7 @@ library(readr)
 library(dplyr)
 library(lubridate)
 library(tseries)
+library(urca)
 
 # read the dataset
 df_jungfraujoch <- read.delim("data/raw/weather_monthly_jungfraujoch.csv", sep = ";")
@@ -35,7 +36,7 @@ adf.test(temp_mean_ts_jungfraujoch) # p-value is less than .05 hence stationary
 adf.test(temp_deviation_ts_jungfraujoch) # p-value is less than .05 hence stationary
 
 # decomposition (trend, seasonality, residuals)
-temp_mean_ts_jungfraujoch_comp=decompose(temp_deviation_ts_jungfraujoch)
+temp_mean_ts_jungfraujoch_comp=decompose(temp_mean_ts_jungfraujoch)
 temp_deviation_ts_jungfraujoch_comp=decompose(temp_deviation_ts_jungfraujoch)
 plot(temp_mean_ts_jungfraujoch_comp)
 plot(temp_deviation_ts_jungfraujoch_comp)
@@ -46,9 +47,16 @@ plot(stl_mean)
 plot(stl_dev)
 
 # acf and pacf
-acf(temp_mean_ts_jungfraujoch)
-pacf(temp_mean_ts_jungfraujoch)
+acf(temp_mean_ts_jungfraujoch) # shows seasonality (oscillation)
+pacf(temp_mean_ts_jungfraujoch) # damped/fades out
 
-acf(temp_deviation_ts_jungfraujoch)
-pacf(temp_deviation_ts_jungfraujoch)
+acf(temp_deviation_ts_jungfraujoch) # 
+pacf(temp_deviation_ts_jungfraujoch) # 
+
+# 4. Test for structural breaks around 1980
+library(strucchange)
+# Convert to annual means first for break testing
+annual_temps <- aggregate(temp_mean_ts_jungfraujoch, FUN = mean)
+bp_test <- breakpoints(annual_temps ~ time(annual_temps))
+plot(bp_test)
 
