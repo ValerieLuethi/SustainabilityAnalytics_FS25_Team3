@@ -15,48 +15,51 @@ df_jungfraujoch <- df_jungfraujoch %>%
 df_jungfraujoch_cleaned <- df_jungfraujoch %>% 
   select(station_abbr, reference_timestamp, ths200m0, th9120mv)
 # rename columns
-colnames(df_jungfraujoch_cleaned) <- c('station_abbr', 'reference_timestamp', 'temp_mean', 'temp_deviation')
+colnames(df_jungfraujoch_cleaned) <- c('station_abbr', 'reference_timestamp', 'temp_mean_C', 'temp_deviation_C')
 head(df_jungfraujoch_cleaned)
+summary(df_jungfraujoch_cleaned)
 # check for NAs
 colSums(is.na(df_jungfraujoch_cleaned)) # no NAs
 
 # create time series object
 # temp_mean monthly series
-temp_mean_ts_jungfraujoch <- ts(df_jungfraujoch_cleaned$temp_mean,
+temp_mean_ts_jungfraujoch <- ts(df_jungfraujoch_cleaned$temp_mean_C,
                    start = c(1933, 1), frequency = 12)
 # temp_deviation monthly series
-temp_deviation_ts_jungfraujoch <- ts(df_jungfraujoch_cleaned$temp_deviation,
+temp_deviation_ts_jungfraujoch <- ts(df_jungfraujoch_cleaned$temp_deviation_C,
                         start = c(1933, 1), frequency = 12)
+
 # plots
 plot(temp_mean_ts_jungfraujoch, main = "Monthly Mean Temperature Jungfraujoch", ylab = "Temp (°C)")
 plot(temp_deviation_ts_jungfraujoch, main = "Monthly Temperature Deviation Jungfraujoch", ylab = "Temp (°C)")
-
-# check stationarity
-adf.test(temp_mean_ts_jungfraujoch) # p-value is less than .05 hence stationary
-adf.test(temp_deviation_ts_jungfraujoch) # p-value is less than .05 hence stationary
 
 # decomposition (trend, seasonality, residuals)
 temp_mean_ts_jungfraujoch_comp=decompose(temp_mean_ts_jungfraujoch)
 temp_deviation_ts_jungfraujoch_comp=decompose(temp_deviation_ts_jungfraujoch)
 plot(temp_mean_ts_jungfraujoch_comp)
 plot(temp_deviation_ts_jungfraujoch_comp)
-# STL decomposition
-stl_mean <- stl(temp_mean_ts_jungfraujoch, s.window = "periodic")
-stl_dev <- stl(temp_deviation_ts_jungfraujoch, s.window = "periodic")
-plot(stl_mean)
-plot(stl_dev)
 
-# acf and pacf
-acf(temp_mean_ts_jungfraujoch) # shows seasonality (oscillation)
-pacf(temp_mean_ts_jungfraujoch) # damped/fades out
+# adjust for seasonality
+temp_mean_adj <- temp_mean_ts_jungfraujoch - temp_mean_ts_jungfraujoch_comp$seasonal
+temp_dev_adj  <- temp_deviation_ts_jungfraujoch - temp_deviation_ts_jungfraujoch_comp$seasonal
+plot(temp_mean_adj)
+plot(temp_dev_adj)
 
-acf(temp_deviation_ts_jungfraujoch) # 
-pacf(temp_deviation_ts_jungfraujoch) # 
+# adjust for trend
+temp_mean_adj_diff <- diff(temp_mean_adj)
+temp_dev_adj_diff  <- diff(temp_dev_adj)
+plot(temp_mean_adj_diff)
+plot(temp_dev_adj_diff)
 
-# 4. Test for structural breaks around 1980
-library(strucchange)
-# Convert to annual means first for break testing
-annual_temps <- aggregate(temp_mean_ts_jungfraujoch, FUN = mean)
-bp_test <- breakpoints(annual_temps ~ time(annual_temps))
-plot(bp_test)
+# check stationarity again
+adf.test(temp_mean_adj_diff)
+adf.test(temp_dev_adj_diff)
+
+# check ACF and PACF
+acf(temp_mean_adj_diff, main = "ACF: Differenced Temp Mean")
+pacf(temp_mean_adj_diff, main = "PACF: Differenced Temp Mean")
+
+acf(temp_dev_adj_diff, main = "ACF: Differenced Temp Deviation")
+pacf(temp_dev_adj_diff, main = "PACF: Differenced Temp Deviation")
+
 
