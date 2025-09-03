@@ -7,8 +7,12 @@ th9120mv;"Air temperature 2 m above ground; deviation of the homogeneous monthly
 
 ## massbalance_observation.csv
 
-Winter/Summer/Annual mass balance (Bw/Bs/Ba) → millimeters water equivalent (mm w.e.), representing the amount of snow accumulated in winter/summer/annually converted to the equivalent depth of water.
-The Equilibrium Line Altitude (ELA) -> the elevation on a glacier where annual accumulation equals annual ablation. (If temperatures rise or snowfall decreases, the ELA rises.)
-Minimum and maximum elevation of glacier → Determines vertical gradient and exposure to temperature changes.
+Winter/Summer/Annual mass balance (Bw/Bs/Ba) → millimeters water equivalent (mm w.e.), representing the amount of snow accumulated in winter/summer/annually converted to the equivalent depth of water. <br />
+The Equilibrium Line Altitude (ELA) -> the elevation on a glacier where annual accumulation equals annual ablation. (If temperatures rise or snowfall decreases, the ELA rises.) <br />
+Accumulation Area Ratio -> Area of Accumulation Zone / Total Glacier Area. It is used as a climate/glacier health indicator. If the AAR is lower (e.g. 0.2), it means the glacier is losing mass and shrinking.
+	
+
+
+
 
 
