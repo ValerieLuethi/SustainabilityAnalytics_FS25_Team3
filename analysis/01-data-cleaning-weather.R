@@ -5,8 +5,13 @@ library(lubridate)
 library(tseries)
 library(urca)
 
-# read the dataset
+# read the datasets
 df_jungfraujoch <- read.delim("data/raw/weather_monthly_jungfraujoch.csv", sep = ";")
+df_sion <- read.delim("data/raw/weather_monthly_sion.csv", sep = ';')
+df_brig_precipitation <- read.delim("data/raw/weather_rain_monthly_brig.csv")
+
+
+
 # convert timestamp to datetime
 df_jungfraujoch <- df_jungfraujoch %>%
   mutate(reference_timestamp = dmy_hm(reference_timestamp),
@@ -45,15 +50,9 @@ temp_dev_adj  <- temp_deviation_ts_jungfraujoch - temp_deviation_ts_jungfraujoch
 plot(temp_mean_adj)
 plot(temp_dev_adj)
 
-# adjust for trend
-temp_mean_adj_diff <- diff(temp_mean_adj)
-temp_dev_adj_diff  <- diff(temp_dev_adj)
-plot(temp_mean_adj_diff)
-plot(temp_dev_adj_diff)
-
-# check stationarity again
-adf.test(temp_mean_adj_diff)
-adf.test(temp_dev_adj_diff)
+# check stationarity
+adf.test(temp_mean_adj)
+adf.test(temp_dev_adj)
 
 # check ACF and PACF
 acf(temp_mean_adj_diff, main = "ACF: Differenced Temp Mean")
