@@ -179,6 +179,19 @@ residuals_ar1 <- residuals(ar1_fit)
 acf(residuals_ar1)
 pacf(residuals_ar1)
 
+# data frame with time, deterministic, stochastic, trend, seasonal
+det_stoch_df <- data.frame(
+  year_month = as.yearmon(time(ts_jungfraujoch)),
+  observed = as.numeric(ts_jungfraujoch),
+  trend = trend_fitted,
+  seasonal = seasonal_component,
+  deterministic = deterministic_series,
+  stochastic = stochastic_series
+)
+
+head(det_stoch_df)
+write.csv(det_stoch_df, "data/processed/jungfraujoch_det_stoch.csv", row.names = FALSE)
+
 ''' combine the two datasets for plotting
 dates <- seq.Date(from = as.Date("1933-01-01"),
                   by = "month", 
