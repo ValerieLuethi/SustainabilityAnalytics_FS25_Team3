@@ -71,21 +71,21 @@ lines(ts_sion, col="red")
 legend("topright", legend=c("Jungfraujoch","Sion"), col=c("blue","red"), lty=1)
 
 # acf and pacf
-acf(ts_jungfraujoch)
-pacf(ts_jungfraujoch)
+acf(ts_jungfraujoch) # acf indicates seasonality
+pacf(ts_jungfraujoch) # damped sinusoid
 
-acf(ts_sion)
-pacf(ts_sion)
+acf(ts_sion) # acf indicates seasnality
+pacf(ts_sion) # damped sinusoid
 
 # decomposition
 ts_jungfraujoch_comp = decompose(ts_jungfraujoch)
 plot(ts_jungfraujoch_comp)
 ts_sion_comp = decompose(ts_sion)
-plot(ts_sion_comp)
+plot(ts_sion_comp) # upward trend starting aaround 1980
 
 # check stationarity
-adf.test(ts_jungfraujoch, alternative = "stationary")
-adf.test(ts_sion, alternative = "stationary")
+adf.test(ts_jungfraujoch, alternative = "stationary") # p = .01 indicates stationarity
+adf.test(ts_sion, alternative = "stationary") # p = 0.1 indicates stationarity
 
 # plot trend
 plot(ts_jungfraujoch_comp$trend, main="Trend Jungfraujoch")
@@ -100,9 +100,49 @@ pacf(residuals_clean_jungfrau)
 residuals_sion <- ts_sion_comp$random
 residuals_clean_sion <- na.omit(residuals_sion)
 acf(residuals_clean_sion)
-pacf(residuals_clean_sion)
+pacf(residuals_clean_sion) # pacf shows strong negative lags - AR process?
 
-# pacf indicates seasonality
+# decomposition with stl
+ts_jungfraujoch_stl <- stl(ts_jungfraujoch, s.window = "periodic") # assumes strong, stable seasonality
+plot(ts_jungfraujoch_stl, main = "s.window periodic")
+ts_jungfraujoch_stl_13 <- stl(ts_jungfraujoch, s.window = 13)
+plot(ts_jungfraujoch_stl_13, main = "s.window = 13")
+ts_jungfraujoch_stl_25 <- stl(ts_jungfraujoch, s.window = 25)
+plot(ts_jungfraujoch_stl_25, main = "s.window = 25")
+ts_jungfraujoch_stl_37 <- stl(ts_jungfraujoch, s.window = 37)
+plot(ts_jungfraujoch_stl_37, main = "s.window = 37")
+
+remainder_periodic <- ts_jungfraujoch_stl$time.series[, "remainder"]
+acf(remainder_periodic, main = "ACF of STL remainder, periodic")
+pacf(remainder_periodic, main = "PACF of STL remainder, periodic")
+
+remainder_13 <- ts_jungfraujoch_stl_13$time.series[, "remainder"]
+acf(remainder_37, main = "ACF of STL remainder, s.window = 13")
+pacf(remainder_37, main = "PACF of STL remainder, s.window = 13")
+
+remainder_37 <- ts_jungfraujoch_stl_37$time.series[, "remainder"]
+acf(remainder_37, main = "ACF of STL remainder, s.window = 37") # ACF lags 2 and 5 persist
+pacf(remainder_37, main = "PACF of STL remainder, s.window = 37") 
+
+# model trend
 
 
 
+# combine the two datasets for plotting
+dates <- seq.Date(from = as.Date("1933-01-01"),
+                  by = "month", 
+                  length.out = length(ts_jungfraujoch))
+df_temperature <- data.frame(
+  date = dates,
+  jungfraujoch = as.numeric(ts_jungfraujoch),
+  sion = as.numeric(ts_sion)
+)
+head(df_temperature)
+str(df_temperature)
+
+# multivariate ts object
+ts_temperature <- ts(df_temperature[, c("jungfraujoch", "sion")],
+                 start = c(1933, 1),
+                 frequency = 12)
+head(ts_temperature)
+str(ts_temperature)
