@@ -190,7 +190,11 @@ det_stoch_df <- data.frame(
 )
 
 head(det_stoch_df)
+
+# create processed data file
 write.csv(det_stoch_df, "data/processed/jungfraujoch_det_stoch.csv", row.names = FALSE)
+# RDS
+saveRDS(det_stoch_df, "data/processed/jungfraujoch_det_stoch.rds")
 
 ''' combine the two datasets for plotting
 dates <- seq.Date(from = as.Date("1933-01-01"),
