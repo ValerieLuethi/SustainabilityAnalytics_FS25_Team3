@@ -3,6 +3,8 @@ library(readr)
 library(dplyr)
 library(lubridate)
 library(tseries)
+library(zoo)
+library(forecast)
 
 # read weather datasets
 df_jungfraujoch <- read.delim("data/raw/weather_monthly_jungfraujoch.csv", header=TRUE, sep = ";")
@@ -105,30 +107,79 @@ pacf(residuals_clean_sion) # pacf shows strong negative lags - AR process?
 # decomposition with stl
 ts_jungfraujoch_stl <- stl(ts_jungfraujoch, s.window = "periodic") # assumes strong, stable seasonality
 plot(ts_jungfraujoch_stl, main = "s.window periodic")
-ts_jungfraujoch_stl_13 <- stl(ts_jungfraujoch, s.window = 13)
+ts_jungfraujoch_stl_13 <- stl(ts_jungfraujoch, s.window = 13) # 1 year smooth
 plot(ts_jungfraujoch_stl_13, main = "s.window = 13")
-ts_jungfraujoch_stl_25 <- stl(ts_jungfraujoch, s.window = 25)
+ts_jungfraujoch_stl_25 <- stl(ts_jungfraujoch, s.window = 25) # 2 year smooth
 plot(ts_jungfraujoch_stl_25, main = "s.window = 25")
-ts_jungfraujoch_stl_37 <- stl(ts_jungfraujoch, s.window = 37)
+ts_jungfraujoch_stl_37 <- stl(ts_jungfraujoch, s.window = 37) # 3 year smooth
 plot(ts_jungfraujoch_stl_37, main = "s.window = 37")
+ts_jungfraujoch_stl_37_121 <- stl(ts_jungfraujoch, s.window = 37, t.window=121) # 3 year smooth
+plot(ts_jungfraujoch_stl_37_121, main = "s.window = 37, t.window=121")
+ts_jungfraujoch_stl_49 <- stl(ts_jungfraujoch, s.window = 49)
+plot(ts_jungfraujoch_stl_49)
 
 remainder_periodic <- ts_jungfraujoch_stl$time.series[, "remainder"]
 acf(remainder_periodic, main = "ACF of STL remainder, periodic")
 pacf(remainder_periodic, main = "PACF of STL remainder, periodic")
 
 remainder_13 <- ts_jungfraujoch_stl_13$time.series[, "remainder"]
-acf(remainder_37, main = "ACF of STL remainder, s.window = 13")
-pacf(remainder_37, main = "PACF of STL remainder, s.window = 13")
+acf(remainder_13, main = "ACF of STL remainder, s.window = 13")
+pacf(remainder_13, main = "PACF of STL remainder, s.window = 13")
+
+remainder_25 <- ts_jungfraujoch_stl_25$time.series[, "remainder"]
+acf(remainder_25, main="ACF of STL remainder, s.window = 25")
+pacf(remainder_25, main = "PACF of STL remainder, s.window = 25")
 
 remainder_37 <- ts_jungfraujoch_stl_37$time.series[, "remainder"]
 acf(remainder_37, main = "ACF of STL remainder, s.window = 37") # ACF lags 2 and 5 persist
-pacf(remainder_37, main = "PACF of STL remainder, s.window = 37") 
+pacf(remainder_37, main = "PACF of STL remainder, s.window = 37")
 
-# model trend
+remainder_37_121 <- ts_jungfraujoch_stl_37_121$time.series[, "remainder"]
+acf(remainder_37_121)
+pacf(remainder_37_121) # no change compared to without t.window
 
+remainder_49 <- ts_jungfraujoch_stl_49$time.series[, "remainder"]
+acf(remainder_49, main="ACF of STL remainder, s.window=49") # no change compared to 37 window
+pacf(remainder_49, main="PACF of STL remainder, s.window=49")
 
+# deterministic and stochastic decomposition with breakpoint trend
+# time index and breakpoint
+time_index <- as.numeric(time(ts_jungfraujoch))  # numeric fractional years
+breakpoint <- 1980 + 1/12 # fractional year
+# Create slope-change variable
+slope_change <- pmax(0, time_index - breakpoint)
+# Fit piecewise linear trend
+trend_model <- lm(ts_jungfraujoch ~ time_index + slope_change)
+trend_fitted <- predict(trend_model)
+# STL seasonal component only
+stl_fit <- stl(ts_jungfraujoch, s.window = 37)
+seasonal_component <- stl_fit$time.series[, "seasonal"]
+# Deterministic series = trend + seasonal
+deterministic_series <- trend_fitted + seasonal_component
+# Stochastic series = residuals
+stochastic_series <- ts_jungfraujoch - deterministic_series
+# Plot trend + seasonal
+plot(time_index, trend_fitted, type="l", col="red", lwd=2,
+     main="Piecewise Trend with Breakpoint", xlab="Year", ylab="Temp (°C)")
+abline(v=breakpoint, col="blue", lty=2)
 
-# combine the two datasets for plotting
+plot(time_index, seasonal_component, type="l", col="blue", lwd=1,
+     main="Seasonal Component", xlab="Year", ylab="Temp (°C)")
+# Check stochastic residuals
+acf(stochastic_series, main="ACF of stochastic residuals")
+pacf(stochastic_series, main="PACF of stochastic residuals")
+# Fit ARIMA or AR(1)
+arima_fit <- auto.arima(stochastic_series, seasonal = FALSE)
+summary(arima_fit)
+checkresiduals(arima_fit)
+
+ar1_fit <- Arima(stochastic_series, order = c(1,0,0))
+summary(ar1_fit)
+residuals_ar1 <- residuals(ar1_fit)
+acf(residuals_ar1)
+pacf(residuals_ar1)
+
+''' combine the two datasets for plotting
 dates <- seq.Date(from = as.Date("1933-01-01"),
                   by = "month", 
                   length.out = length(ts_jungfraujoch))
@@ -145,4 +196,4 @@ ts_temperature <- ts(df_temperature[, c("jungfraujoch", "sion")],
                  start = c(1933, 1),
                  frequency = 12)
 head(ts_temperature)
-str(ts_temperature)
+str(ts_temperature) '''
