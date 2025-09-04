@@ -70,6 +70,13 @@ plot(ts_jungfraujoch, col="blue", ylab="Temperature (°C)", main="Jungfraujoch v
 lines(ts_sion, col="red")
 legend("topright", legend=c("Jungfraujoch","Sion"), col=c("blue","red"), lty=1)
 
+# acf and pacf
+acf(ts_jungfraujoch)
+pacf(ts_jungfraujoch)
+
+acf(ts_sion)
+pacf(ts_sion)
+
 # decomposition
 ts_jungfraujoch_comp = decompose(ts_jungfraujoch)
 plot(ts_jungfraujoch_comp)
