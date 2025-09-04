@@ -1,0 +1,149 @@
+---
+title: "Brig_Rain"
+output: html_document
+date: "2025-09-04"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r Libararies, include= FALSE} 
+library(tseries)
+library(astsa)
+library(imputeTS)
+library(forecast)
+library(magrittr)
+library(dplyr)
+library(lubridate)
+library(tidyr)
+```
+
+
+```{r}
+df_brigrain_raw <- read.csv('../data/raw/weather_rain_monthly_brig.csv', header=TRUE, sep=';', na.strings='-')
+df_brigrain_raw$Date <- as.Date(df_brigrain_raw$reference_timestamp, format = "%d.%m.%Y")
+#df_brigrain_raw$Date <- as.POSIXct(df_brigrain_raw$reference_timestamp, format = "%d.%m.%Y %H:%M")
+
+df_rain <- df_brigrain_raw %>% select(Date, rhs150m0)
+```
+
+```{r}
+plot(df_rain)
+```
+
+## Approach with auto.arima
+
+```{r}
+# parsing date into the right format
+#df_brigrain_raw$Date <- as.Date(df_brigrain_raw$reference_timestamp, format = "%d.%m.%Y")
+
+# defining starting year and month
+start_year  <- year(min(df_brigrain_raw$Date))
+start_month <- month(min(df_brigrain_raw$Date))
+
+# creating ts-object on a monthly basis
+rain_ts <- ts(df_brigrain_raw$rhs150m0,
+              start = c(start_year, start_month),
+              frequency = 12)   # 12 Monate pro Jahr
+
+# ARIMA-Modell
+fit <- auto.arima(rain_ts)
+
+# prediction for the next 24 month
+rain_forecast <- forecast(fit, h = 24)
+
+# Plot
+plot(rain_forecast, xlim = c(time(rain_ts)[1], time(rain_ts)[length(rain_ts)] + 2))
+```
+
+
+## Datapreparation
+
+```{r}
+library(lubridate)
+
+# parsing date into the right format
+df_brigrain_raw$Date <- as.Date(df_brigrain_raw$reference_timestamp, format = "%d.%m.%Y")
+
+# defining starting year and month
+start_year  <- year(min(df_brigrain_raw$Date))
+start_month <- month(min(df_brigrain_raw$Date))
+
+# creating ts-object on a monthly basis
+rain_ts <- ts(df_brigrain_raw$rhs150m0,
+              start = c(start_year, start_month),
+              frequency = 12)   # 12 Monate pro Jahr
+```
+
+```{r}
+plot(rain_ts, 
+     main = "Monthly Rain Brig", 
+     xlab = "Year", 
+     ylab = "Rainfall in mm")
+```
+
+```{r}
+# Decompose of timeseries
+rain_decomp <- decompose(rain_ts)
+
+# plotting the decomposed components
+plot(rain_decomp)
+```
+
+```{r}
+rain_resid <- rain_decomp$random
+plot(rain_resid, main="Residuals (Random) of Rainfall in Brig)")
+```
+```{r}
+#Checking the NA values -> 6 NA at the beginning and the end of the time series
+rain_resid_df <- data.frame(
+  Date = df_brigrain_raw$Date,
+  Residual = rain_resid
+)
+```
+
+
+```{r}
+#Dicky-Fuller test (ADF) for checking the stationarity
+rain_resid <- na.omit(rain_resid)
+adf.test(rain_resid)
+```
+
+```{r}
+# ACF-Plot for the residuals
+acf(rain_resid, main = "ACF of residuals")
+pacf(rain_resid, main = "PACF of residuals")
+```
+
+```{r}
+# Simple Differenciation (Lag 1)
+rain_resid_diff <- diff(rain_resid, differences = 1)
+acf(rain_resid_diff, main = "ACF of residuals")
+#Dicky-Fuller test
+adf.test(rain_resid_diff)
+```
+
+```{r}
+#Creating dataframe with the decompose data
+rain_deterministic_df <- data.frame(
+  Date = df_brigrain_raw$Date,
+  Trend = rain_decomp$trend,
+  Season = rain_decomp$seasonal
+)
+
+```
+
+```{r}
+# Datum passend auswählen
+resid_dates <- df_brigrain_raw$Date[!is.na(rain_decomp$random)]
+rain_resid_diff_dates <- resid_dates[-1]  # Lag 1 beachten
+
+#Creating dataframe with differentiated residuals of the compose
+rain_resid_diff_df <- data.frame(
+  Date = rain_resid_diff_dates,  
+  Residual_diff = rain_resid_diff
+)
+```
+
+
