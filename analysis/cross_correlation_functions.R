@@ -58,5 +58,75 @@ str(df_waterlevel)
 # precipiation
 str(df_precipitation) # already in right format
 
+# merge by dates, full outer join
+df_merged <- df_jungfrau %>%
+  select(Date, observed, trend, seasonal, remainder) %>%
+  full_join(df_glacier %>%
+              select(Date, mass_balance_monthly, trend, seasonal, deterministic, stochastic),
+            by = "Date", suffix = c("_jungfrau", "_glacier")) %>%
+  full_join(df_waterlevel %>%
+              select(Date, waterlevel_m, trend, seasonal, deterministic, stochastic),
+            by = "Date", suffix = c("", "_waterlevel")) %>%
+  full_join(df_precipitation %>%
+              select(Date, Original, Trend, Seasonal, Remainder),
+            by = "Date", suffix = c("", "_precipitation")) %>%
+  arrange(Date)
 
+head(df_merged)
+str(df_merged)
+
+# rename columns
+df_merged <- df_merged %>%
+  rename(
+    # Jungfrau
+    observed_jungfrau = observed,
+    trend_jungfrau = trend_jungfrau,
+    seasonal_jungfrau = seasonal_jungfrau,
+    remainder_jungfrau = remainder,
+    
+    # Glacier
+    mass_balance_glacier = mass_balance_monthly,
+    trend_glacier = trend_glacier,
+    seasonal_glacier = seasonal_glacier,
+    deterministic_glacier = deterministic,
+    stochastic_glacier = stochastic,
+    
+    # Waterlevel
+    waterlevel = waterlevel_m,
+    trend_waterlevel = trend,
+    seasonal_waterlevel = seasonal,
+    deterministic_waterlevel = deterministic_waterlevel,
+    stochastic_waterlevel = stochastic_waterlevel,
+    
+    # Precipitation
+    precipitation = Original,
+    trend_precipitation = Trend,
+    seasonal_precipitation = Seasonal,
+    remainder_precipitation = Remainder
+  )
+
+# select same time span
+# Find first and last date of each dataset
+start_jungfrau <- min(df_merged$Date[!is.na(df_merged$observed_jungfrau)])
+end_jungfrau   <- max(df_merged$Date[!is.na(df_merged$observed_jungfrau)])
+
+start_glacier  <- min(df_merged$Date[!is.na(df_merged$mass_balance_glacier)])
+end_glacier    <- max(df_merged$Date[!is.na(df_merged$mass_balance_glacier)])
+
+start_water    <- min(df_merged$Date[!is.na(df_merged$waterlevel)])
+end_water      <- max(df_merged$Date[!is.na(df_merged$waterlevel)])
+
+start_precip   <- min(df_merged$Date[!is.na(df_merged$precipitation)])
+end_precip     <- max(df_merged$Date[!is.na(df_merged$precipitation)])
+
+# Overlapping date range
+start_overlap <- max(start_jungfrau, start_glacier, start_water, start_precip)
+end_overlap   <- min(end_jungfrau, end_glacier, end_water, end_precip)
+
+df_merged_overlap <- df_merged %>%
+  filter(Date >= start_overlap & Date <= end_overlap)
+
+head(df_merged_overlap)
+colSums(is.na(df_merged_overlap))
+any(is.na(df_merged_overlap)) # no NAs
 
