@@ -1,12 +1,4 @@
-The data of the Swiss Glacier Monitoring Network (GLAMOS) are freely available (https://www.glamos.ch) and may be used with indication of the source for scientific and non-commercial use.;;;;;;;;;;;;;;;;
-When using these data; please cite as:;;;;;;;;;;;;;;;
-GLAMOS (2024). Swiss Glacier Mass Balance; release 2024; Glacier Monitoring Switzerland; doi:10.18750/massbalance.2024.r2024.;;;;;;;;;;;;;
-;;;;;;;;;;;;;;;;
-SWISS GLACIER MASS BALANCE (OBSERVATION PERIOD);;;;;;;;;;;;;;;;
-;;;;;;;;;;;;;;;;
 glacier name;glacier id;start date of observation;end date of winter observation;end date of observation;winter mass balance;summer mass balance;annual mass balance;equilibrium line altitude;accumulation area ratio;glacier area;minimum elevation of glacier;maximum elevation of glacier;observer;;;
-;(according to Swiss Glacier Inventory);date_start;date_end_winter;date_end;Bw;Bs;Ba;ELA;AAR;area;h_min;h_max;;;;
-;;yyyy-mm-dd (ISO 8601);yyyy-mm-dd (ISO 8601);yyyy-mm-dd (ISO 8601);mm w.e.;mm w.e.;mm w.e.;m asl.;%;km2;m asl.;m asl.;;;;
 Silvrettagletscher;A10g-05;01.10.1914;30.04.1915;30.09.1915;1445;-1860;-415;2795;45;4.06687;2406;3185; VAW / ETH Zuerich; Huss et al  2015; Journal of Glaciology;
 Silvrettagletscher;A10g-05;29.09.1915;15.05.1916;05.08.1916;1519;-683;836;2515;93;3.55563;2414;3091; VAW / ETH Zuerich; Huss et al  2015; Journal of Glaciology;
 Silvrettagletscher;A10g-05;05.08.1916;11.03.1917;07.09.1917;1878;-1603;275;2675;69;3.55563;2414;3091; VAW / ETH Zuerich; Huss et al  2015; Journal of Glaciology;
