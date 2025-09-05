@@ -1,0 +1,90 @@
+---
+title: "Sustainability Analytics: Project Report Group 2"
+subtitle: "Effect of Climate Change on Aletschgletscher and the village of Brig"
+author:
+  - name: "Vani Gupta"
+    affiliation: "Hochschule Luzern"
+    email: "vani.gupta@stud.hslu.ch"
+  - name: "Ramona Kölliker"
+    affiliation: "Hochschule Luzern"
+    email: "ramona.kölliker@stud.hslu.ch"
+  - name: "Valérie Lüthi"
+    affiliation: "Hochschule Luzern"
+    email: "valerie.lüthi@stud.hslu.ch"
+  - name: "Alois Wagner"
+    affiliation: "Hochschule Luzern"
+    email: "alois.wagner@stud.hslu.ch"
+date: "2025-09-05"
+output:
+  html_document:
+    number_sections: true
+    theme: lumen
+    code_folding: hide
+    toc: true
+    toc_float: true
+    toc_collapsed: true
+    toc_depth: 3
+    toc-title: Table of Content
+  minidown::mini_document:
+    result_folding: show
+---
+
+<u>**Loading R-Packages**</u>
+
+```{r Loading_Packages, include=TRUE, warning=FALSE, message=FALSE, echo=TRUE, results='hide'}
+#Loading needed packages
+
+
+```
+
+<br><p style="font-size: 35px;"> Introduction </p><br>
+
+This report presents the course project developed during ........
+
+
+
+
+<u>**Loading Datasets**</u>
+
+```{r loading_dataset, include=TRUE, warning=FALSE, message=FALSE, echo=TRUE, results='hide'}
+# Reading in datasets
+#df_data <- read.csv("xxxxx.csv")
+```
+
+# H1
+
+<u>**Datapreparation of Brig_Rain dataset**</u>
+```{r rain_brig_datapreparation, include=TRUE, warning=FALSE, message=FALSE, echo=TRUE, results='hide'}
+#code
+```
+## H2
+
+### H3 {#chapter-with-features}
+
+<u>**----->"Header for the Code Block1<------**</u>
+```{r first_subset_feature_exp, include=TRUE, warning=FALSE, message=FALSE, echo=TRUE}
+#code
+```
+<u>**----->"Header for the Code Block1<------**</u>
+```{r first_subset_feature_exp1, include=TRUE, warning=FALSE, message=FALSE, echo=TRUE}
+#code
+```
+
+The [feature explanation](#Table_feature_exp) can be found in the appendix.
+
+
+
+
+
+
+# Appendix
+
+## Feature Explanation of the dataset {#Table_feature_exp}
+
+This section provides further explanations for the dataset.
+
+```{r data_dict, include=TRUE, warning=FALSE, message=FALSE, echo=TRUE}
+
+```
+
+[Back to Chapter 'H3'](#chapter-with-features)
