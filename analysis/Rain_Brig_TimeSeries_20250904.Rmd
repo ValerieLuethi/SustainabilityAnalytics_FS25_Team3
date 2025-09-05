@@ -102,6 +102,12 @@ head(rain_decomp_df)  # zum Prüfen
 ```
 
 ```{r}
+#saving data
+saveRDS(rain_decomp_df, file = "rain_decomposition.rds")
+```
+
+
+```{r}
 #Forcasting
 rain_forecast <- forecast(stl_1, h = 12)
 plot(rain_forecast)
