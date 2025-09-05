@@ -162,12 +162,12 @@ par(mfrow=c(2,1))
 acf(residuals_stl, main="ACF of STL Residuals", na.action=na.pass)
 pacf(residuals_stl, main="PACF of STL Residuals", na.action=na.pass)
 
-## adding components from stl decomp on original time series to the df
-decomp_original <- stl(ts_glacier, s.window = "periodic")
-df_glacier_monthly$trend <- as.numeric(decomp_original$time.series[,"trend"])
-df_glacier_monthly$seasonal <- as.numeric(decomp_original$time.series[,"seasonal"]) 
-df_glacier_monthly$deterministic <- df_glacier_monthly$trend + df_glacier_monthly$seasonal
-df_glacier_monthly$stochastic <- as.numeric(decomp_original$time.series[,"remainder"])
+## adding components from stl decomp to the df
+## First 12 values are NA as seasonal decomp was done with lag=12
+df_glacier_monthly$trend <- c(rep(NA, 12), as.numeric(decomp$time.series[,"trend"]))
+df_glacier_monthly$seasonal <- c(rep(NA, 12), as.numeric(decomp$time.series[,"seasonal"]))
+df_glacier_monthly$deterministic <- c(rep(NA, 12), as.numeric(decomp$time.series[,"trend"]) + as.numeric(decomp$time.series[,"seasonal"]))
+df_glacier_monthly$stochastic <- c(rep(NA, 12), as.numeric(decomp$time.series[,"remainder"]))
 
 write.csv(df_glacier_monthly, "data/processed/glacier_monthly_processed.csv", row.names = FALSE)
 saveRDS(df_glacier_monthly, "data/processed/glacier_monthly_processed.rds")
