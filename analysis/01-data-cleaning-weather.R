@@ -142,59 +142,28 @@ remainder_49 <- ts_jungfraujoch_stl_49$time.series[, "remainder"]
 acf(remainder_49, main="ACF of STL remainder, s.window=49") # no change compared to 37 window
 pacf(remainder_49, main="PACF of STL remainder, s.window=49")
 
-# deterministic and stochastic decomposition with breakpoint trend
-# time index and breakpoint
-time_index <- as.numeric(time(ts_jungfraujoch))  # numeric fractional years
-breakpoint <- 1980 + 1/12 # fractional year
-# Create slope-change variable
-slope_change <- pmax(0, time_index - breakpoint)
-# Fit piecewise linear trend
-trend_model <- lm(ts_jungfraujoch ~ time_index + slope_change)
-trend_fitted <- predict(trend_model)
-# STL seasonal component only
-stl_fit <- stl(ts_jungfraujoch, s.window = 37)
-seasonal_component <- stl_fit$time.series[, "seasonal"]
-# Deterministic series = trend + seasonal
-deterministic_series <- trend_fitted + seasonal_component
-# Stochastic series = residuals
-stochastic_series <- ts_jungfraujoch - deterministic_series
-# Plot trend + seasonal
-plot(time_index, trend_fitted, type="l", col="red", lwd=2,
-     main="Piecewise Trend with Breakpoint", xlab="Year", ylab="Temp (°C)")
-abline(v=breakpoint, col="blue", lty=2)
+# Extract components
+components <- ts_jungfraujoch_stl_37_121$time.series
 
-plot(time_index, seasonal_component, type="l", col="blue", lwd=1,
-     main="Seasonal Component", xlab="Year", ylab="Temp (°C)")
-# Check stochastic residuals
-acf(stochastic_series, main="ACF of stochastic residuals")
-pacf(stochastic_series, main="PACF of stochastic residuals")
-# Fit ARIMA or AR(1)
-arima_fit <- auto.arima(stochastic_series, seasonal = FALSE)
-summary(arima_fit)
-checkresiduals(arima_fit)
+# Create a time index (Date or Year-Month depending on your ts object)
+dates <- time(ts_jungfraujoch)
 
-ar1_fit <- Arima(stochastic_series, order = c(1,0,0))
-summary(ar1_fit)
-residuals_ar1 <- residuals(ar1_fit)
-acf(residuals_ar1)
-pacf(residuals_ar1)
-
-# data frame with time, deterministic, stochastic, trend, seasonal
-det_stoch_df <- data.frame(
-  year_month = as.yearmon(time(ts_jungfraujoch)),
-  observed = as.numeric(ts_jungfraujoch),
-  trend = trend_fitted,
-  seasonal = seasonal_component,
-  deterministic = deterministic_series,
-  stochastic = stochastic_series
+# Build a data frame
+df_jungfraujoch_processed <- data.frame(
+  date       = dates,
+  observed   = as.numeric(ts_jungfraujoch),
+  trend      = as.numeric(components[, "trend"]),
+  seasonal   = as.numeric(components[, "seasonal"]),
+  remainder  = as.numeric(components[, "remainder"])
 )
 
-head(det_stoch_df)
+head(df_jungfraujoch_processed)
+str(df_jungfraujoch_processed)
 
 # create processed data file
-write.csv(det_stoch_df, "data/processed/jungfraujoch_det_stoch.csv", row.names = FALSE)
+write.csv(df_jungfraujoch_processed, "data/processed/jungfraujoch_temperature.csv", row.names = FALSE)
 # RDS
-saveRDS(det_stoch_df, "data/processed/jungfraujoch_det_stoch.rds")
+saveRDS(df_jungfraujoch_processed, "data/processed/jungfraujoch_temperature.rds")
 
 ''' combine the two datasets for plotting
 dates <- seq.Date(from = as.Date("1933-01-01"),
