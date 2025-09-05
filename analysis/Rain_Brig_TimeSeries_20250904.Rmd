@@ -17,6 +17,7 @@ library(magrittr)
 library(dplyr)
 library(lubridate)
 library(tidyr)
+library(zoo)
 ```
 
 
@@ -58,7 +59,7 @@ plot(rain_forecast, xlim = c(time(rain_ts)[1], time(rain_ts)[length(rain_ts)] + 
 ```
 
 
-## Datapreparation for decompose and stl approach
+# Datapreparation for decompose and stl approach
 
 ```{r}
 library(lubridate)
@@ -74,6 +75,31 @@ start_month <- month(min(df_brigrain_raw$Date))
 rain_ts <- ts(df_brigrain_raw$rhs150m0,
               start = c(start_year, start_month),
               frequency = 12)   # 12 Monate pro Jahr
+```
+
+
+## Datapreparation with slt
+
+```{r}
+stl_1 <- stl(rain_ts, s.window =122, t.window=115)
+plot(stl_1)
+remainder_stl1 <- stl_1$time.series[,"remainder"]
+adf.test(remainder_stl1)
+acf(remainder_stl1, main = "ACF of residuals")
+pacf(remainder_stl1, main = "PACF of residuals")
+```
+```{r}
+#Creating dataframe of the prepared data
+rain_prepared_df <- data.frame(
+  Date = as.Date(as.yearmon(time(rain_ts))),  # change year and month to date
+  rain_remainder = remainder_stl1
+)
+```
+
+```{r}
+#Forcasting
+rain_forecast <- forecast(stl_1, h = 12)
+plot(rain_forecast)
 ```
 
 
@@ -150,14 +176,5 @@ rain_resid_diff_df <- data.frame(
 )
 ```
 
-## Datapreparation with slt
 
-```{r}
-stl_1 <- stl(rain_ts, s.window =122, t.window=115)
-plot(stl_1)
-remainder_stl1 <- stl_1$time.series[,"remainder"]
-adf.test(remainder_stl1)
-acf(remainder_stl1, main = "ACF of residuals")
-pacf(remainder_stl1, main = "PACF of residuals")
-```
 
