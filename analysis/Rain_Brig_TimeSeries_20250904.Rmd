@@ -90,10 +90,15 @@ pacf(remainder_stl1, main = "PACF of residuals")
 ```
 ```{r}
 #Creating dataframe of the prepared data
-rain_prepared_df <- data.frame(
-  Date = as.Date(as.yearmon(time(rain_ts))),  # change year and month to date
-  rain_remainder = remainder_stl1
+rain_decomp_df <- data.frame(
+  Date      = as.Date(as.yearmon(time(rain_ts))),  # Monatsdaten aus ts-Zeitindex
+  Original  = as.numeric(rain_ts),                 # Rohdaten
+  Trend     = stl_1$time.series[,"trend"],         # Trend-Komponente
+  Seasonal  = stl_1$time.series[,"seasonal"],      # Saisonal-Komponente
+  Remainder = stl_1$time.series[,"remainder"]      # Rest
 )
+
+head(rain_decomp_df)  # zum Prüfen
 ```
 
 ```{r}
