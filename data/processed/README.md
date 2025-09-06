@@ -1,5 +1,5 @@
 # Info about Processed Data
-## massa_cleaned.csv
+## massa_cleaned.csv and rhone_cleaned
 Missing Data Pattern:
 Snow water equivalent data (snow_water_equiv_mm) contains missing values (NaN) from dataset start through 1998-09-01
 Complete observations available from 1998-09-02 onwards
