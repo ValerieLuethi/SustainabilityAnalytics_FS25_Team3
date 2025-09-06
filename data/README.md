@@ -14,8 +14,9 @@ Winter/Summer/Annual mass balance (Bw/Bs/Ba) → millimeters water equivalent (m
 The Equilibrium Line Altitude (ELA) -> the elevation on a glacier where annual accumulation equals annual ablation. (If temperatures rise or snowfall decreases, the ELA rises.)
 Minimum and maximum elevation of glacier → Determines vertical gradient and exposure to temperature changes.
 
-## massa_CAMELS_CH_obs_based_2161.csv
-Date range: 1981-01-01 to 2020-12-01
+## massa_CAMELS_CH_obs_based_2161.csv and brig_CAMELS_CH_obs_based_2346
+Massa: Date range: 1981-01-01 to 2020-12-01
+Brig: Date rannge: 1981-01-01 to 2020-12-31
 catchment = a land area, bounded by natural high points like hills or mountains, where all water, including rainfall and snowmelt, collects and drains into a single common outlet, such as a river, lake, or the ocean
 
 waterlevel_m: observed daily water head above sea level in meters
