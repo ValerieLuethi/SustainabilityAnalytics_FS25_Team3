@@ -33,8 +33,13 @@ output:
 
 ```{r Loading_Packages, include=TRUE, warning=FALSE, message=FALSE, echo=TRUE, results='hide'}
 #Loading needed packages
-
-
+library(dplyr)
+library(forecast)
+library(ggplot2)
+library(lubridate)
+library(readr)
+library(tseries)
+library(zoo)
 ```
 
 <br><p style="font-size: 35px;"> Introduction </p><br>
@@ -42,14 +47,22 @@ output:
 This report presents the course project developed during ........
 
 
-
+# Data
 
 <u>**Loading Datasets**</u>
 
 ```{r loading_dataset, include=TRUE, warning=FALSE, message=FALSE, echo=TRUE, results='hide'}
 # Reading in datasets
 #df_data <- read.csv("xxxxx.csv")
+
+# load Jungfraujoch weather data
+df_jungfraujoch <- read.delim("../data/raw/weather_monthly_jungfraujoch.csv", header=TRUE, sep = ";")
+head(df_jungfraujoch)
+str(df_jungfraujoch)
 ```
+## Jungfraujoch Weather Data
+
+The homogeneous data series from the Jungfraujoch climate station is available on demand via [MeteoSchweiz OpenData](https://www.meteoswiss.admin.ch/services-and-publications/service/open-data.html). The station is located 3571 meters above sea level and We were interested in the measurement of the homogeneous monthly mean temperature covering the time span from 01/01/1933 to 01/07/2025. The temperature in Celsius was measured 2 meters above ground.
 
 # H1
 
