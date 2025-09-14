@@ -100,12 +100,19 @@ str(ts_jungfraujoch)
 # Data Analysis
 
 ## Jungfraujoch Temperature
+
+A frist inspection of the summary statistics shows a minimum monthly mean temperature of -21.7 C° and a maximum monthly mean temperature of 3.5 C°. The mainly negative values align with the expected cold climate on Jungfraujoch. Yet the the difference between the coldest and warmest value shows a substantial difference around 25 C°.
+The visual inspection shows strong oscillations representing the expected seasonality in temperature data. There seems to be a slight upwards trend as well.
+The ACF of the time series shows a clear seasonal pattern where cold winters alternate with relatively mild summers. The PACF indicates strong autogregressive components, meaning each month's mean temperature is influenced by preceding months. This reflects characteristics we would expect in climate data.
+
 <u>**Data Analysis Jungfraujoch_Temperature dataset**</u>
 ```{r jungfraujoch_temperature_dataanalysis, include=TRUE, warning=FALSE, message=FALSE, echo=TRUE, results='hide'}
 # summary statistics
 summary(ts_jungfraujoch)
 # plot
-plot(ts_jungfraujoch, main="Jungfraujoch Monthly Temperature", ylab="°C")
+hist(ts_jungfraujoch, main="Distribution Jungfraujoch Monthly Temperature", ylab="C°")
+boxplot(ts_jungfraujoch, main="Boxplot Jungfraujoch Monthly Temperature", ylab="C°")
+plot(ts_jungfraujoch, main="Jungfraujoch Monthly Temperature", ylab="C°")
 # check acf and pacf
 # acf and pacf
 acf(ts_jungfraujoch) # acf indicates seasonality
