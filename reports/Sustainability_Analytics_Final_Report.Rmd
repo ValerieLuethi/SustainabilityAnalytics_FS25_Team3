@@ -47,11 +47,11 @@ This report presents the course project developed during the blockweek Sustainab
 
 # Data
 
-Description of data (source, structure) ...
+The data from the Jungfraujoch weather station was obtained through the open data service of the Federal Office of Meteorology and Climatology [MeteoSwiss](https://www.meteoswiss.admin.ch/services-and-publications/service/open-data.html). The Jungfraujoch weather station is located 3'571 meters above sea level with measurements available from 01/01/1933 to 01/07/2025. We were interested in the homogeneous monthly mean of the air temperature (C°) measured 2 meters above ground.
 
-<u>**Loading Datasets**</u>
+<u>**Loading Jungfraujoch Temperature Data**</u>
 
-```{r loading_dataset, include=TRUE, warning=FALSE, message=FALSE, echo=TRUE, results='hide'}
+```{r loading_dataset_jungfraujoch_temperature, include=TRUE, warning=FALSE, message=FALSE, echo=TRUE, results='hide'}
 # Reading in datasets
 #df_data <- read.csv("xxxxx.csv")
 
@@ -85,8 +85,6 @@ ts_jungfraujoch <- ts(df_jungfraujoch_reduced$temp_mean_C,
                               (nrow(df_jungfraujoch_reduced)-1) %% 12 + 1),
                       frequency = 12)
 str(ts_jungfraujoch)
-# summary statistics
-summary(ts_jungfraujoch)
 ```
 
 <u>**Datapreparation of Brig_Rain dataset**</u>
@@ -95,8 +93,107 @@ summary(ts_jungfraujoch)
 ```
 
 
-## Data Analysis
+# Data Analysis
 
+## Jungfraujoch Temperature
+<u>**Data Analysis Jungfraujoch_Temperature dataset**</u>
+```{r jungfraujoch_temperature_dataanalysis, include=TRUE, warning=FALSE, message=FALSE, echo=TRUE, results='hide'}
+# summary statistics
+summary(ts_jungfraujoch)
+# plot
+plot(ts_jungfraujoch, main="Jungfraujoch Monthly Temperature", ylab="°C")
+# check acf and pacf
+# acf and pacf
+acf(ts_jungfraujoch) # acf indicates seasonality
+pacf(ts_jungfraujoch) # damped sinusoid
+```
+<u>**Decomposition Jungfraujoch_Temperature dataset**</u>
+```{r jungfraujoch_temperature_decompose, include=TRUE, warning=FALSE, message=FALSE, echo=TRUE, results='hide'}
+# decomposition
+ts_jungfraujoch_comp = decompose(ts_jungfraujoch)
+plot(ts_jungfraujoch_comp)
+# check stationarity with adf
+adf.test(ts_jungfraujoch, alternative = "stationary") # p = .01 indicates stationarity
+# save components
+ts_jungfraujoch_trend <- ts_jungfraujoch_comp$trend
+ts_jungfraujoch_seasonal <- ts_jungfraujoch_comp$seasonal
+ts_jungfraujoch_remainder <- ts_jungfraujoch_comp$random
+# plot trend
+plot(ts_jungfraujoch_trend, main="Trend Jungfraujoch")
+# plot seasonality
+plot(ts_jungfraujoch_seasonal, main="Seasonal Jungfraujoch")
+# plot remainder
+plot(ts_jungfraujoch_remainder, main="Remainder Jungfraujoch")
+# acf and pacf of residuals
+residuals_clean_jungfrau <- na.omit(ts_jungfraujoch_remainder)
+acf(residuals_clean_jungfrau) # fast decay
+pacf(residuals_clean_jungfrau) # strong negative lags - mean reverting behavior?, cyclicity
+```
+<u>**STL Decomposition Jungfraujoch_Temperature dataset**</u>
+```{r jungfraujoch_temperature_decompose_STL, include=TRUE, warning=FALSE, message=FALSE, echo=TRUE, results='hide'}
+# decomposition with stl
+ts_jungfraujoch_stl <- stl(ts_jungfraujoch, s.window = "periodic") # assumes strong, stable seasonality
+plot(ts_jungfraujoch_stl, main = "s.window periodic")
+ts_jungfraujoch_stl_13 <- stl(ts_jungfraujoch, s.window = 13) # 1 year smooth
+plot(ts_jungfraujoch_stl_13, main = "s.window = 13")
+ts_jungfraujoch_stl_25 <- stl(ts_jungfraujoch, s.window = 25) # 2 year smooth
+plot(ts_jungfraujoch_stl_25, main = "s.window = 25")
+ts_jungfraujoch_stl_37 <- stl(ts_jungfraujoch, s.window = 37) # 3 year smooth
+plot(ts_jungfraujoch_stl_37, main = "s.window = 37")
+ts_jungfraujoch_stl_37_121 <- stl(ts_jungfraujoch, s.window = 37, t.window=121) # 3 year smooth
+plot(ts_jungfraujoch_stl_37_121, main = "s.window = 37, t.window=121")
+ts_jungfraujoch_stl_49 <- stl(ts_jungfraujoch, s.window = 49)
+plot(ts_jungfraujoch_stl_49)
+
+remainder_periodic <- ts_jungfraujoch_stl$time.series[, "remainder"]
+acf(remainder_periodic, main = "ACF of STL remainder, periodic")
+pacf(remainder_periodic, main = "PACF of STL remainder, periodic")
+
+remainder_13 <- ts_jungfraujoch_stl_13$time.series[, "remainder"]
+acf(remainder_13, main = "ACF of STL remainder, s.window = 13")
+pacf(remainder_13, main = "PACF of STL remainder, s.window = 13")
+
+remainder_25 <- ts_jungfraujoch_stl_25$time.series[, "remainder"]
+acf(remainder_25, main="ACF of STL remainder, s.window = 25")
+pacf(remainder_25, main = "PACF of STL remainder, s.window = 25")
+
+remainder_37 <- ts_jungfraujoch_stl_37$time.series[, "remainder"]
+acf(remainder_37, main = "ACF of STL remainder, s.window = 37") # ACF lags 2 and 5 persist
+pacf(remainder_37, main = "PACF of STL remainder, s.window = 37")
+
+remainder_37_121 <- ts_jungfraujoch_stl_37_121$time.series[, "remainder"]
+acf(remainder_37_121)
+pacf(remainder_37_121) # no change compared to without t.window, lags 9,12 and 22 are negative, maybe some seasonality left?
+
+remainder_49 <- ts_jungfraujoch_stl_49$time.series[, "remainder"]
+acf(remainder_49, main="ACF of STL remainder, s.window=49") # no change compared to 37 window
+pacf(remainder_49, main="PACF of STL remainder, s.window=49")
+```
+<u>**Create Jungfraujoch_Temperature datasframe*</u>
+```{r jungfraujoch_temperature_dataframe, include=TRUE, warning=FALSE, message=FALSE, echo=TRUE, results='hide'}
+# Extract components
+components <- ts_jungfraujoch_stl_37_121$time.series
+
+# Create a time index (Date or Year-Month depending on your ts object)
+dates <- time(ts_jungfraujoch)
+
+# Build a data frame
+df_jungfraujoch_processed <- data.frame(
+  date       = dates,
+  observed   = as.numeric(ts_jungfraujoch),
+  trend      = as.numeric(components[, "trend"]),
+  seasonal   = as.numeric(components[, "seasonal"]),
+  remainder  = as.numeric(components[, "remainder"])
+)
+
+head(df_jungfraujoch_processed)
+str(df_jungfraujoch_processed)
+
+# create processed data file
+write.csv(df_jungfraujoch_processed, "../data/processed/jungfraujoch_temperature.csv", row.names = FALSE)
+# RDS
+saveRDS(df_jungfraujoch_processed, "../data/processed/jungfraujoch_temperature.rds")
+```
 ### H3 {#chapter-with-features}
 
 <u>**----->"Header for the Code Block1<------**</u>
