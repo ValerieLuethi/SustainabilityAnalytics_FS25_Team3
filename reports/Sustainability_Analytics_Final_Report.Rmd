@@ -33,14 +33,17 @@ output:
 
 ```{r Loading_Packages, include=TRUE, warning=FALSE, message=FALSE, echo=TRUE, results='hide'}
 #Loading needed packages
-
-
+library(readr)
+library(dplyr)
+library(lubridate)
+library(tseries)
+library(zoo)
+library(forecast)
 ```
 
 <br><p style="font-size: 35px;"> Introduction </p><br>
 
-This report presents the course project developed during ........
-
+This report presents the course project developed during the blockweek Sustainability Analytics FS25.
 
 
 
@@ -49,14 +52,29 @@ This report presents the course project developed during ........
 ```{r loading_dataset, include=TRUE, warning=FALSE, message=FALSE, echo=TRUE, results='hide'}
 # Reading in datasets
 #df_data <- read.csv("xxxxx.csv")
+
+# load Jungfraujoch data
+df_jungfraujoch <- read.delim("../data/raw/weather_monthly_jungfraujoch.csv", header=TRUE, sep = ";")
+head(df_jungfraujoch)
+str(df_jungfraujoch)
 ```
 
-# H1
+# Data Preparation
+
+<u>**Datapreparation of Jungfraujoch_Temperature_dataset**</u>
+```{r jungfraujoch_temperature_datapreparation, include=TRUE, warning=FALSE, message=FALSE, echo=TRUE, results='hide'}
+#code
+df_jungfraujoch <- df_jungfraujoch %>%
+  mutate(reference_timestamp = dmy_hm(reference_timestamp))
+str(df_jungfraujoch)
+```
 
 <u>**Datapreparation of Brig_Rain dataset**</u>
 ```{r rain_brig_datapreparation, include=TRUE, warning=FALSE, message=FALSE, echo=TRUE, results='hide'}
 #code
 ```
+
+
 ## H2
 
 ### H3 {#chapter-with-features}
