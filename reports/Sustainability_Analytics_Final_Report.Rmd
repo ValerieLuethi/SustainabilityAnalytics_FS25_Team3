@@ -45,7 +45,9 @@ library(forecast)
 
 This report presents the course project developed during the blockweek Sustainability Analytics FS25.
 
+# Data
 
+Description of data (source, structure) ...
 
 <u>**Loading Datasets**</u>
 
@@ -61,12 +63,30 @@ str(df_jungfraujoch)
 
 # Data Preparation
 
+## Jungfraujoch Temperature Data
+
 <u>**Datapreparation of Jungfraujoch_Temperature_dataset**</u>
 ```{r jungfraujoch_temperature_datapreparation, include=TRUE, warning=FALSE, message=FALSE, echo=TRUE, results='hide'}
-#code
+# convert timestamp to datetime
 df_jungfraujoch <- df_jungfraujoch %>%
   mutate(reference_timestamp = dmy_hm(reference_timestamp))
 str(df_jungfraujoch)
+# only keep the columns needed for further analysis
+df_jungfraujoch_reduced <- df_jungfraujoch %>% 
+  select(station_abbr, reference_timestamp, ths200m0)
+# rename the columns
+colnames(df_jungfraujoch_reduced) <- c('station_abbr', 'reference_timestamp', 'temp_mean_C')
+# check for NAs
+colSums(is.na(df_jungfraujoch_reduced)) # no NAs
+# create a timeseries object
+ts_jungfraujoch <- ts(df_jungfraujoch_reduced$temp_mean_C,
+                      start = c(1933, 1),
+                      end = c(1933 + (nrow(df_jungfraujoch_reduced)-1) %/% 12,
+                              (nrow(df_jungfraujoch_reduced)-1) %% 12 + 1),
+                      frequency = 12)
+str(ts_jungfraujoch)
+# summary statistics
+summary(ts_jungfraujoch)
 ```
 
 <u>**Datapreparation of Brig_Rain dataset**</u>
@@ -75,7 +95,7 @@ str(df_jungfraujoch)
 ```
 
 
-## H2
+## Data Analysis
 
 ### H3 {#chapter-with-features}
 
