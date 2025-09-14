@@ -47,6 +47,8 @@ This report presents the course project developed during the blockweek Sustainab
 
 # Data
 
+## Jungfraujoch Temperature Data
+
 The data from the Jungfraujoch weather station was obtained through the open data service of the Federal Office of Meteorology and Climatology [MeteoSwiss](https://www.meteoswiss.admin.ch/services-and-publications/service/open-data.html). The Jungfraujoch weather station is located 3'571 meters above sea level with measurements available from 01/01/1933 to 01/07/2025. We were interested in the homogeneous monthly mean of the air temperature (C°) measured 2 meters above ground.
 
 <u>**Loading Jungfraujoch Temperature Data**</u>
@@ -64,6 +66,8 @@ str(df_jungfraujoch)
 # Data Preparation
 
 ## Jungfraujoch Temperature Data
+
+In order to convert the data into a time series later on, we first converted the reference time stamp into the datetime format. We discarded all columns that were not necessary for our analysis and renamed the remaining columns. The measurements of the homogeneous monthly mean air temperature were complete for the whole period (no missings). In the last step we converted the data into a time series object.
 
 <u>**Datapreparation of Jungfraujoch_Temperature_dataset**</u>
 ```{r jungfraujoch_temperature_datapreparation, include=TRUE, warning=FALSE, message=FALSE, echo=TRUE, results='hide'}
