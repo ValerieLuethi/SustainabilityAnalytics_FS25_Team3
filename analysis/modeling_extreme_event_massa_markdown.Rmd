@@ -29,10 +29,10 @@ library(forecast)
 library(evd)      # for calculating HQ values
 ```
 
-## First data analysis
+## First data analysis massa
 
 
-```{r pressure, echo=FALSE}
+```{r loading_data, echo=FALSE}
 # Read data
 df_massa <- read.csv('../data/processed/massa_cleaned.csv', header=TRUE, sep=',', na.strings='-')
 
@@ -332,6 +332,14 @@ abline(lm(Original ~ as.numeric(Date), data=mstl_df), col="blue", lwd=2)
 par(mfrow = c(1,1), mar = c(5,4,3,1))
 ```
 
+```{r EVT_histogram_massa, include = TRUE}
+# histogram
+p_massa <- ggplot(orig_df, aes(x=Watervolume)) + 
+  geom_histogram() +
+  ggtitle("Histogramm of massa watervolume in m^3/s")
+plot(p_massa)
+```
+
 ### EVT threshold quantile > 0.998
 
 ```{r EVT_modeling_threshold, include = TRUE}
@@ -388,4 +396,136 @@ HQ <- qgev(p, loc=loc, scale=scale, shape=shape)
 # output
 hq_table <- data.frame(ReturnPeriod = return_periods, HQ = HQ)
 hq_table
+```
+
+
+
+## First data analysis rhone
+
+```{r loading_data2, echo=FALSE}
+# Read data
+df_rhone <- read.csv('../data/processed/rhone_cleaned.csv', header=TRUE, sep=',', na.strings='-')
+
+#----------------------------------------------------------------------
+#----------------------------------------------------------------------
+#First insights of rhone data / creating ts
+
+# defining starting year and month
+start_year2  <- year(min(df_rhone$date_yyyymmdd))
+start_month2 <- month(min(df_rhone$date_yyyymmdd))
+start_day2 <- day(min(df_rhone$date_yyyymmdd))
+
+## Time Series Massa River - daily data
+freq_daily <- 365.2422
+
+ts_watervolume_rhone <- ts(df_rhone$discharge_vol_m3s, 
+              start = c(year(min(df_rhone$date_yyyymmdd)),
+                        yday(min(df_rhone$date_yyyymmdd))), 
+              frequency = freq_daily)
+
+#plotting rhone data / watervolume
+plot(ts_watervolume_rhone, main = "Original Data")
+```
+
+
+### plotting lm-trend line
+```{r EVT_rhone, include = TRUE}
+
+# creating dataframe with mstl objects
+#----------------------------
+# defining start date
+start_date <- as.Date("1981-01-01")
+# length of time series
+n <- length(ts_watervolume_rhone)
+# creating date
+dates <- seq.Date(from = start_date, by = "day", length.out = n)
+
+rhone_df <- data.frame(
+  Date = dates,
+  Watervolume = ts_watervolume_rhone
+)
+
+#-plot
+orig_t_lm <- lm(Watervolume ~ Date, data = rhone_df)
+
+plot(rhone_df$Date, rhone_df$Watervolume, type="l", main="Watervolume with regression trend-line", xlab="Year", ylab="m^3/s")
+abline(orig_t_lm, col="blue", lwd=2)
+
+# Plotting original data with normal trend/abline and extrem value lm-trend/abline
+threshold <- quantile(rhone_df$Watervolume, 0.95)  # upper 5%-quantile
+orig_ex <- subset(rhone_df, Watervolume > threshold)
+
+orig_ex_t_lm <- lm(Watervolume ~ Date, data = orig_ex)
+
+# Plot
+plot(rhone_df$Date, rhone_df$Watervolume, type="l", main="Original + extrem trend", xlab="Year", ylab="m^3/s")
+abline(orig_t_lm, col="blue", lwd=2)
+abline(orig_ex_t_lm, col="green", lwd=2)
+
+```
+
+```{r EVT_histogram_rhone, include = TRUE}
+# histogram
+p_rhone <- ggplot(rhone_df, aes(x=Watervolume)) + 
+  geom_histogram() +
+  ggtitle("Histogramm of rhone watervolume in m^3/s")
+plot(p_rhone)
+```
+
+### EVT threshold quantile > 0.998
+
+```{r EVT_modeling_threshold_rhone, include = TRUE}
+#EVT original data on upper quantil
+threshold3 <- quantile(rhone_df$Watervolume, 0.998)
+rhone_ex3 <- rhone_df %>% filter(rhone_df$Watervolume > threshold3)
+rhone_ex_fit3 <- gev.fit(rhone_ex3$Watervolume)
+gev.diag(rhone_ex_fit3) # -> Return Period is on a daily scale
+rhone_ex_fit3$mle
+```
+
+### EVT block max year 
+
+```{r EVT_modeling_block_max_rhone, include = TRUE}
+#-----------------
+#EVT original data block max year
+
+rhone_df <- rhone_df %>%
+  mutate(Date = start_date + (Date - min(Date)))  # Time as day offset
+
+rhone_df_max_year <- rhone_df %>%
+  mutate(YEAR = year(Date),
+         MONTH = month(Date)) %>%
+  group_by(YEAR) %>%
+  summarize(Watervolume_MAX = max(Watervolume, na.rm = TRUE)) %>%
+  ungroup()
+
+rhone_df_max_year_fit <- gev.fit(rhone_df_max_year$Watervolume_MAX)
+gev.diag(rhone_df_max_year_fit) # -> Return Period is on a yearly scale
+rhone_df_max_year_fit$mle
+```
+
+### EVT HQ Values
+
+```{r EVT_modeling_hq_rhone, include = TRUE}
+# Outputting HQ Values
+# -> -> Hochwasser-Quantil / Hochwasserabluss: flood quantil for a defined return interval
+# -> HQ2 means the watervolume will be achieved/exceeded each 2 years
+
+loc2 <- rhone_df_max_year_fit$mle[1]
+scale2 <- rhone_df_max_year_fit$mle[2]
+shape2 <- rhone_df_max_year_fit$mle[3]
+
+# return periode in years
+return_periods <- c(2, 10, 30, 100, 300)
+
+# probability p = 1 - 1/T
+p <- 1 - 1 / return_periods
+
+
+# calculating HQ-Value
+HQ <- qgev(p, loc=loc2, scale=scale2, shape=shape2)
+
+# output
+hq_table2 <- data.frame(ReturnPeriod = return_periods, HQ = HQ)
+hq_table2
 ```
