@@ -36,16 +36,16 @@ knitr::opts_chunk$set(echo = TRUE)
 <u>**Loading R-Packages**</u>
 ```{r Loading_Packages, include=TRUE, warning=FALSE, message=FALSE, echo=TRUE, results='hide'}
 #Loading needed packages
+library(dplyr)
+library(forecast)
+library(ggplot2)
+library(lubridate)
 library(tseries)  # for working with time series
 library(ismev)    # for EVT gev.fit
 library(tidyverse)# for data handling (includes ggplot2, dplyr, tidyr, readr, lubridate)
-library(forecast)
 library(evd)      # for calculating HQ values in EVT
 library(zoo)      # for function 'yearmon'
 ```
-
-
-
 
 # Introduction (Ramona)
 
@@ -59,11 +59,12 @@ Hinweis für Ramona: Falls wir für die Einleitung oder Abstrakt keine Auflistun
 <u>**Loading Data**</u>
 ```{r loading_data, include= TRUE, echo=TRUE}
 # Reading in data
+# for massa, rhone and glacier: why are the processed csv loaded instead of the raw data?
 raw_massa <- read.csv('../data/processed/massa_cleaned.csv', header=TRUE, sep=',', na.strings='-')
 raw_rhone <- read.csv('../data/processed/rhone_cleaned.csv', header=TRUE, sep=',', na.strings='-')
 raw_glacier <- read.csv('../data/processed/glacier_cleaned.csv', header=TRUE, sep=',', na.strings='-')
 raw_glacier_monthly <- read.csv('../data/processed/glacier_monthly_processed.csv', header=TRUE, sep=',', na.strings='-')
-raw_jungfraujoch <- read.csv('../data/processed/jungfraujoch_temperature.csv', header=TRUE, sep=',', na.strings='-')
+raw_jungfraujoch <- read.csv("../data/raw/weather_monthly_jungfraujoch.csv", header=TRUE, sep=';', na.strings='-')
 raw_brigrain <- read.csv('../data/raw/weather_rain_monthly_brig.csv', header=TRUE, sep=';', na.strings='-')
 
 ```
