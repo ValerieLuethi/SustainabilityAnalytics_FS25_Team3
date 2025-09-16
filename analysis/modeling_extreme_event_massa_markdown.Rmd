@@ -1,0 +1,531 @@
+---
+title: "modeling_extreme_event_massa_markdown"
+date: "2025-09-08"
+output:
+  html_document:
+    # css: RawData/CSS/styles.css
+    number_sections: true
+    theme: lumen
+    code_folding: hide
+    toc: true
+    toc_float: true
+    toc_collapsed: true
+    toc_depth: 3
+    toc-title: Table of Content
+  minidown::mini_document:
+    result_folding: show
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r library, echo=FALSE, message=FALSE, warning=FALSE}
+library(tseries)  # for working with time series
+library(ismev)    # for EVT gev.fit
+library(tidyverse)
+library(forecast)
+library(evd)      # for calculating HQ values
+```
+
+## First data analysis massa
+
+
+```{r loading_data, echo=FALSE}
+# Read data
+df_massa <- read.csv('../data/processed/massa_cleaned.csv', header=TRUE, sep=',', na.strings='-')
+
+#----------------------------------------------------------------------
+#----------------------------------------------------------------------
+#First insights of massa data / creating ts
+
+# defining starting year and month
+start_year  <- year(min(df_massa$date_yyyymmdd))
+start_month <- month(min(df_massa$date_yyyymmdd))
+start_day <- day(min(df_massa$date_yyyymmdd))
+
+## Time Series Massa River - daily data
+freq_daily <- 365.2422
+
+ts_watervolume <- ts(df_massa$discharge_vol_m3s, 
+              start = c(year(min(df_massa$date_yyyymmdd)),
+                        yday(min(df_massa$date_yyyymmdd))), 
+              frequency = freq_daily)
+
+#plotting massa data / watervolume
+plot(ts_watervolume, main = "Original Data")
+```
+
+## Making data stationary
+
+### Daily data
+
+#### decompose
+
+```{r decompose, include = TRUE}
+ts_watervolume_comp <- decompose(ts_watervolume)
+plot(ts_watervolume_comp)
+
+acf(na.omit(ts_watervolume_comp$random), main = "ACF of decompose residuals")
+pacf(na.omit(ts_watervolume_comp$random), main = "PACF of decompose residuals")
+plot(ts_watervolume_comp$random, main = "Residuals decompose")
+adf.test(na.omit(ts_watervolume_comp$random))
+```
+
+#### Decompose + Diff lag = 365
+
+```{r decompose_diff, include = TRUE}
+ts_watervolume_comp_diff <- diff(ts_watervolume_comp$random, lag = 365)
+acf(na.omit(ts_watervolume_comp_diff), main = "ACF of decompose + diff residuals")
+pacf(na.omit(ts_watervolume_comp_diff), main = "PACF of decompose + diff residuals")
+plot(ts_watervolume_comp_diff, main = "Residuals decompose + diff")
+adf.test(na.omit(ts_watervolume_comp_diff))
+```
+
+#### stl approach
+
+```{r stl, include = TRUE}
+ts_watervolume_stl <- stl(ts_watervolume, s.window = 182.5, t.window=365.2422)
+remainder_ts_watervolume_stl <- ts_watervolume_stl$time.series[,"remainder"]
+acf(remainder_ts_watervolume_stl, main = "ACF of residuals stl")
+pacf(remainder_ts_watervolume_stl, main = "PACF of residuals stl")
+plot(remainder_ts_watervolume_stl, main = "Residuals stl")
+adf.test(na.omit(remainder_ts_watervolume_stl))
+```
+
+
+#### mstl approach
+
+```{r mstl, include = TRUE}
+# mstl approach: with year and winter/summer season
+ts_watervolume_msts <- msts(ts_watervolume, seasonal.periods = c(365.2422, 182.5))
+ts_watervolume_mstl <- mstl(ts_watervolume_msts, s.window = 7, 
+                            t.window = 350, robust = FALSE)
+
+# plotting the mstl components underneath
+#par(mfrow = c(5,1), mar = c(3,4,2,1))  # mar = Ränder anpassen
+
+# extracting components
+mstl_trend <- ts_watervolume_mstl[, "Trend"]
+mstl_seasonal1 <- ts_watervolume_mstl[, "Seasonal365.24"]
+mstl_seasonal2 <- ts_watervolume_mstl[, "Seasonal182.5"]
+mstl_remainder <- ts_watervolume_mstl[, "Remainder"]
+
+plot(ts_watervolume, type = "l", main = "Original", ylab = "")
+plot(mstl_trend, type = "l", main = "Trend mstl", ylab = "")
+plot(mstl_seasonal1, type = "l", main = "Seasonal 1 (Year) mstl", ylab = "")
+plot(mstl_seasonal2, type = "l", main = "Seasonal 2 (Half-Year) mstl", ylab = "")
+plot(mstl_remainder, type = "l", main = "Residuals mstl", ylab = "")
+
+# creating dataframe with mstl objects
+#----------------------------
+# defining start date
+start_date <- as.Date("1981-01-01")
+# length of time series
+n <- length(ts_watervolume_msts)
+# creating date
+dates <- seq.Date(from = start_date, by = "day", length.out = n)
+#----------------------------
+
+# extracting mstl components
+mstl_df <- data.frame(
+  Date = dates,
+  Original = ts_watervolume_mstl[, "Data"],                  # original values
+  Trend = ts_watervolume_mstl[, "Trend"],     # trend
+  Seasonal1_Year = ts_watervolume_mstl[, "Seasonal365.24"],  # first season / year
+  Seasonal2_Halfyear = ts_watervolume_mstl[, "Seasonal182.5"],  # second season / half year
+  Remainder = ts_watervolume_mstl[, "Remainder"]   # residuals
+)
+```
+### Monthly data
+
+
+
+#### Monthly Average
+
+```{r monthly_average, include = TRUE}
+# calculation average monthly watervolume
+df_massa_monthly <- df_massa %>%
+  mutate(Year = year(date_yyyymmdd),
+         Month = month(date_yyyymmdd)) %>%
+  group_by(Year, Month) %>%
+  summarise(
+    discharge_monthly_mean = mean(discharge_vol_m3s, na.rm = TRUE),
+    .groups = "drop"
+  ) %>%
+  mutate(Date = as.Date(paste(Year, Month, "01", sep = "-")))
+  
+## Time Series Massa River - monthly data
+ts_watervolume_monthly <- ts(df_massa_monthly$discharge_monthly_mean, 
+              start = c(year(min(df_massa_monthly$Date)),
+                        month(min(df_massa_monthly$Date))), 
+              frequency = 12)
+
+
+plot(ts_watervolume_monthly)
+```
+
+##### decompose approach
+
+```{r decompose_monthly, include = TRUE}
+ts_watervolume_monthly_compose <- decompose(ts_watervolume_monthly)
+plot(ts_watervolume_monthly_compose)
+
+acf(na.omit(ts_watervolume_monthly_compose$random), main = "ACF of residuals monthly average decompose")
+pacf(na.omit(ts_watervolume_monthly_compose$random), main = "PACF of residuals monthly average decompose")
+plot(ts_watervolume_monthly_compose$random, main = "Residuals monthly average decompose")
+adf.test(na.omit(ts_watervolume_monthly_compose$random))
+```
+
+##### stl approach
+
+```{r stl_monthly, include = TRUE}
+  
+ts_watervolume_monthly_stl <- stl(ts_watervolume_monthly, s.window = 24, t.window=365.2422)
+remainder_ts_watervolume_monthly_stl <- ts_watervolume_monthly_stl$time.series[,"remainder"]
+acf(remainder_ts_watervolume_monthly_stl, main = "ACF of residuals monthly average stl")
+pacf(remainder_ts_watervolume_monthly_stl, main = "PACF of residuals monthly average stl")
+plot(remainder_ts_watervolume_monthly_stl, main = "Residuals monthly average stl")
+adf.test(na.omit(remainder_ts_watervolume_monthly_stl))
+plot(ts_watervolume_monthly_stl)
+```
+
+```{r}
+#Creating dataframe of the prepared data
+massa_monthly_mean_stl <- data.frame(
+  Date      = as.Date(paste(df_massa_monthly$Year, df_massa_monthly$Month, "01", sep = "-")),  # monthly date
+  Original  = as.numeric(ts_watervolume_monthly),                 # original data
+  Trend     = ts_watervolume_monthly_stl$time.series[,"trend"],         # trend component
+  Seasonal  = ts_watervolume_monthly_stl$time.series[,"seasonal"],      # seasonal component
+  Remainder = ts_watervolume_monthly_stl$time.series[,"remainder"]      # remainder
+)
+
+head(massa_monthly_mean_stl)  # for checking
+
+# # CSV export
+# write.csv(
+#   massa_monthly_mean_stl, 
+#   "stationary_monthly_mean_watervolume_massa.csv", 
+#   row.names = FALSE
+# )
+# 
+# # RDS export
+# saveRDS(
+#   massa_monthly_mean_stl, 
+#   "stationary_monthly_mean_watervolume_massa.rds"
+# )
+```
+
+
+#### Monthly Max
+
+```{r monthly_max, include = TRUE}
+# calculation max monthly watervolume
+df_massa_monthly_max <- df_massa %>%
+  mutate(Year = year(date_yyyymmdd),
+         Month = month(date_yyyymmdd)) %>%
+  group_by(Year, Month) %>%
+  summarise(
+    discharge_monthly_max = max(discharge_vol_m3s, na.rm = TRUE),
+    .groups = "drop"
+  ) %>%
+  mutate(Date = as.Date(paste(Year, Month, "01", sep = "-")))
+  
+## Time Series Massa River - monthly data
+ts_watervolume_monthly_max <- ts(df_massa_monthly_max$discharge_monthly_max, 
+              start = c(year(min(df_massa_monthly_max$Date)),
+                        month(min(df_massa_monthly_max$Date))), 
+              frequency = 12)
+
+
+plot(ts_watervolume_monthly_max)
+```
+
+##### decompose approach
+
+```{r decompose_monthly_max, include = TRUE}
+ts_watervolume_monthly_max_compose <- decompose(ts_watervolume_monthly_max)
+plot(ts_watervolume_monthly_max_compose)
+
+acf(na.omit(ts_watervolume_monthly_max_compose$random), main = "ACF of residuals monthly max decompose")
+pacf(na.omit(ts_watervolume_monthly_max_compose$random), main = "PACF of residuals monthly max decompose")
+plot(ts_watervolume_monthly_max_compose$random, main = "Residuals monthly max decompose")
+adf.test(na.omit(ts_watervolume_monthly_max_compose$random))
+```
+
+##### stl approach
+
+```{r stl_monthly_max, include = TRUE}
+  
+ts_watervolume_monthly_max_stl <- stl(ts_watervolume_monthly_max, s.window = 24, t.window=530)
+remainder_ts_watervolume_monthly_max_stl <- ts_watervolume_monthly_max_stl$time.series[,"remainder"]
+acf(remainder_ts_watervolume_monthly_max_stl, main = "ACF of residuals monthly max stl")
+pacf(remainder_ts_watervolume_monthly_max_stl, main = "PACF of residuals monthly max stl")
+plot(remainder_ts_watervolume_monthly_max_stl, main = "Residuals monthly max stl")
+adf.test(na.omit(remainder_ts_watervolume_monthly_max_stl))
+plot(ts_watervolume_monthly_max_stl)
+```
+
+## EVT modelling
+
+### plotting lm-trend line
+```{r EVT, include = TRUE}
+# Plotting extracted mstl trend and lm-trend/abline
+# preparing data
+trend_df <- data.frame(
+  Time = as.numeric(mstl_df$Date),
+  Trend = mstl_df$Trend
+)
+
+# linear regression on trend
+trend_t_lm <- lm(Trend ~ Time, data = trend_df)
+
+# Plot
+plot(trend_df$Time, trend_df$Trend, type="l", main="mstl trend with regression line", xlab="Year", ylab="Trend")
+abline(trend_t_lm, col="red", lwd=2)
+
+#----------------------------
+# Plotting original data with lm-trend/abline
+orig_df <- data.frame(
+  Time = as.numeric(mstl_df$Date),
+  Watervolume = mstl_df$Original
+)
+
+orig_t_lm <- lm(Watervolume ~ Time, data = orig_df)
+
+plot(orig_df$Time, orig_df$Watervolume, type="l", main="Original with regression trend-line", xlab="Year", ylab="m^3/s")
+abline(orig_t_lm, col="blue", lwd=2)
+
+# Plotting original data with normal trend/abline and extrem value lm-trend/abline
+threshold <- quantile(orig_df$Watervolume, 0.95)  # upper 5%-quantile
+orig_ex <- subset(orig_df, Watervolume > threshold)
+
+orig_ex_t_lm <- lm(Watervolume ~ Time, data = orig_ex)
+
+# Plot
+plot(orig_df$Time, orig_df$Watervolume, type="l", main="Original + extrem trend", xlab="Year", ylab="m^3/s")
+abline(orig_t_lm, col="blue", lwd=2)
+abline(orig_ex_t_lm, col="green", lwd=2)
+
+
+# Comparing both plots on same scale
+
+# setting plot settings
+par(mfrow = c(2,1), mar = c(5,4,3,1))
+
+# common scaling of y-axis for plotting lm-trend
+ymin <- min(c(mstl_df$Trend, mstl_df$Original), na.rm = TRUE)
+ymax <- max(c(mstl_df$Trend, mstl_df$Original), na.rm = TRUE)
+
+# mstl trend-component
+plot(mstl_df$Date, mstl_df$Trend, type="l", ylim=c(ymin, ymax),
+     main="mstl trend-Component", xlab="Year", ylab="m^3/s")
+abline(lm(Trend ~ as.numeric(Date), data=mstl_df), col="red", lwd=2)
+
+# original data
+plot(mstl_df$Date, mstl_df$Original, type="l", ylim=c(ymin, ymax),
+     main="Original Data", xlab="Year", ylab="m^3/s")
+abline(lm(Original ~ as.numeric(Date), data=mstl_df), col="blue", lwd=2)
+
+# resetting plot settings
+par(mfrow = c(1,1), mar = c(5,4,3,1))
+```
+
+```{r EVT_histogram_massa, include = TRUE}
+# histogram
+p_massa <- ggplot(orig_df, aes(x=Watervolume)) + 
+  geom_histogram() +
+  ggtitle("Histogramm of massa watervolume in m^3/s")
+plot(p_massa)
+```
+
+### EVT threshold quantile > 0.998
+
+```{r EVT_modeling_threshold, include = TRUE}
+#EVT original data on upper quantil
+threshold2 <- quantile(orig_df$Watervolume, 0.998)
+original_ex <- orig_df %>% filter(orig_df$Watervolume > threshold2)
+original_ex_fit <- gev.fit(original_ex$Watervolume)
+gev.diag(original_ex_fit) # -> Return Period is on a daily scale
+original_ex_fit$mle
+```
+
+### EVT block max year 
+
+```{r EVT_modeling_block_max, include = TRUE}
+#-----------------
+#EVT original data block max year
+
+orig_df <- orig_df %>%
+  mutate(Date = start_date + (Time - min(Time)))  # Time as day offset
+
+orig_df_max_year <- orig_df %>%
+  mutate(YEAR = year(Date),
+         MONTH = month(Date)) %>%
+  group_by(YEAR) %>%
+  summarize(Watervolume_MAX = max(Watervolume, na.rm = TRUE)) %>%
+  ungroup()
+
+orig_df_max_year_fit <- gev.fit(orig_df_max_year$Watervolume_MAX)
+gev.diag(orig_df_max_year_fit) # -> Return Period is on a yearly scale
+orig_df_max_year_fit$mle
+```
+
+### EVT HQ Values
+
+```{r EVT_modeling_hq, include = TRUE}
+# Outputting HQ Values
+# -> -> Hochwasser-Quantil / Hochwasserabluss: flood quantil for a defined return interval
+# -> HQ2 means the watervolume will be achieved/exceeded each 2 years
+
+loc <- orig_df_max_year_fit$mle[1]
+scale <- orig_df_max_year_fit$mle[2]
+shape <- orig_df_max_year_fit$mle[3]
+
+# return periode in years
+return_periods <- c(2, 10, 30, 100, 300)
+
+# probability p = 1 - 1/T
+p <- 1 - 1 / return_periods
+
+
+# calculating HQ-Value
+HQ <- qgev(p, loc=loc, scale=scale, shape=shape)
+
+# output
+hq_table <- data.frame(ReturnPeriod = return_periods, HQ = HQ)
+hq_table
+```
+
+
+
+## First data analysis rhone
+
+```{r loading_data2, echo=FALSE}
+# Read data
+df_rhone <- read.csv('../data/processed/rhone_cleaned.csv', header=TRUE, sep=',', na.strings='-')
+
+#----------------------------------------------------------------------
+#----------------------------------------------------------------------
+#First insights of rhone data / creating ts
+
+# defining starting year and month
+start_year2  <- year(min(df_rhone$date_yyyymmdd))
+start_month2 <- month(min(df_rhone$date_yyyymmdd))
+start_day2 <- day(min(df_rhone$date_yyyymmdd))
+
+## Time Series Massa River - daily data
+freq_daily <- 365.2422
+
+ts_watervolume_rhone <- ts(df_rhone$discharge_vol_m3s, 
+              start = c(year(min(df_rhone$date_yyyymmdd)),
+                        yday(min(df_rhone$date_yyyymmdd))), 
+              frequency = freq_daily)
+
+#plotting rhone data / watervolume
+plot(ts_watervolume_rhone, main = "Original Data")
+```
+
+
+### plotting lm-trend line
+```{r EVT_rhone, include = TRUE}
+
+# creating dataframe with mstl objects
+#----------------------------
+# defining start date
+start_date <- as.Date("1981-01-01")
+# length of time series
+n <- length(ts_watervolume_rhone)
+# creating date
+dates <- seq.Date(from = start_date, by = "day", length.out = n)
+
+rhone_df <- data.frame(
+  Date = dates,
+  Watervolume = ts_watervolume_rhone
+)
+
+#-plot
+orig_t_lm <- lm(Watervolume ~ Date, data = rhone_df)
+
+plot(rhone_df$Date, rhone_df$Watervolume, type="l", main="Watervolume with regression trend-line", xlab="Year", ylab="m^3/s")
+abline(orig_t_lm, col="blue", lwd=2)
+
+# Plotting original data with normal trend/abline and extrem value lm-trend/abline
+threshold <- quantile(rhone_df$Watervolume, 0.95)  # upper 5%-quantile
+orig_ex <- subset(rhone_df, Watervolume > threshold)
+
+orig_ex_t_lm <- lm(Watervolume ~ Date, data = orig_ex)
+
+# Plot
+plot(rhone_df$Date, rhone_df$Watervolume, type="l", main="Original + extrem trend", xlab="Year", ylab="m^3/s")
+abline(orig_t_lm, col="blue", lwd=2)
+abline(orig_ex_t_lm, col="green", lwd=2)
+
+```
+
+```{r EVT_histogram_rhone, include = TRUE}
+# histogram
+p_rhone <- ggplot(rhone_df, aes(x=Watervolume)) + 
+  geom_histogram() +
+  ggtitle("Histogramm of rhone watervolume in m^3/s")
+plot(p_rhone)
+```
+
+### EVT threshold quantile > 0.998
+
+```{r EVT_modeling_threshold_rhone, include = TRUE}
+#EVT original data on upper quantil
+threshold3 <- quantile(rhone_df$Watervolume, 0.998)
+rhone_ex3 <- rhone_df %>% filter(rhone_df$Watervolume > threshold3)
+rhone_ex_fit3 <- gev.fit(rhone_ex3$Watervolume)
+gev.diag(rhone_ex_fit3) # -> Return Period is on a daily scale
+rhone_ex_fit3$mle
+```
+
+### EVT block max year 
+
+```{r EVT_modeling_block_max_rhone, include = TRUE}
+#-----------------
+#EVT original data block max year
+
+rhone_df <- rhone_df %>%
+  mutate(Date = start_date + (Date - min(Date)))  # Time as day offset
+
+rhone_df_max_year <- rhone_df %>%
+  mutate(YEAR = year(Date),
+         MONTH = month(Date)) %>%
+  group_by(YEAR) %>%
+  summarize(Watervolume_MAX = max(Watervolume, na.rm = TRUE)) %>%
+  ungroup()
+
+rhone_df_max_year_fit <- gev.fit(rhone_df_max_year$Watervolume_MAX)
+gev.diag(rhone_df_max_year_fit) # -> Return Period is on a yearly scale
+rhone_df_max_year_fit$mle
+```
+
+### EVT HQ Values
+
+```{r EVT_modeling_hq_rhone, include = TRUE}
+# Outputting HQ Values
+# -> -> Hochwasser-Quantil / Hochwasserabluss: flood quantil for a defined return interval
+# -> HQ2 means the watervolume will be achieved/exceeded each 2 years
+
+loc2 <- rhone_df_max_year_fit$mle[1]
+scale2 <- rhone_df_max_year_fit$mle[2]
+shape2 <- rhone_df_max_year_fit$mle[3]
+
+# return periode in years
+return_periods <- c(2, 10, 30, 100, 300)
+
+# probability p = 1 - 1/T
+p <- 1 - 1 / return_periods
+
+
+# calculating HQ-Value
+HQ <- qgev(p, loc=loc2, scale=scale2, shape=shape2)
+
+# output
+hq_table2 <- data.frame(ReturnPeriod = return_periods, HQ = HQ)
+hq_table2
+```
