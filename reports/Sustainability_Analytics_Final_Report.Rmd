@@ -505,6 +505,7 @@ waterlevel_ts <- ts(df_ccf$stochastic_waterlevel,
                     frequency = 12)
 ```
 
+When looking at the output of the cross-correlation function between Jungfraujoch temperature and glacier mass balance the correlations are very weak (|r| < 0.3), indicating little to no relationship between the two variables. At a first glance this result surprised us. Yet when considering that the glacier mass balance data originally was bi-annually and we interpolated it to monthly values, the weak correlation became understandable. With the interpolation to monthly values the glacier mass balance data was artificially flattened making it impossible to find any relationship with temperature.
 <u>**CCF Jungfraujoch Temperature & Glacier Mass Balance**</u>
 ```{r ccf_jungfraujoch_temperature_glacier_mass_balance, include = TRUE, warning=FALSE, message=FALSE}
 temp_scaled <- scale(temp_ts)
