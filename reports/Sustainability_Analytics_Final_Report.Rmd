@@ -507,7 +507,13 @@ waterlevel_ts <- ts(df_ccf$stochastic_waterlevel,
 
 <u>**CCF Jungfraujoch Temperature & Glacier Mass Balance**</u>
 ```{r ccf_jungfraujoch_temperature_glacier_mass_balance, include = TRUE, warning=FALSE, message=FALSE}
-
+temp_scaled <- scale(temp_ts)
+glacier_scaled <- scale(glacier_ts)
+plot(temp_scaled, type="l", col="orange", lwd=2, ylab="Scaled value", xlab="Time")
+lines(glacier_scaled, col="blue", lwd=2)
+legend("topright", legend=c("Temperature Jungfraujoch", "Glacier Mass Balance"), col=c("orange","blue"), lty=1)
+ccf(glacier_ts, temp_ts) # temperature leads
+ccf(temp_ts, glacier_ts) # glacier leads
 ```
 
 # Extreme Value Theory (EVT)
