@@ -40,6 +40,7 @@ library(dplyr)
 library(forecast)
 library(ggplot2)
 library(lubridate)
+library(tidyr)
 library(tseries)  # for working with time series
 library(ismev)    # for EVT gev.fit
 library(tidyverse)# for data handling (includes ggplot2, dplyr, tidyr, readr, lubridate)
@@ -83,7 +84,7 @@ The homogeneous data series from the Jungfraujoch climate station is available o
 # Stationarity
 
 ## Temperature Jungfraujoch (Valérie)
-### Data Preparation
+### Datapreparation
 The raw Jungfraujoch weather data set was prepared by first converting the reference_timestamp column into a proper datetime format. Then the data set was reduced to the columns necessary for our analysis (station_abbr, reference_timestamp, temp_mean_C). For clarity columns were renamed. A check for missing values, confirmed that there were none. Finally a time series object of the mean temperature values was created, specifying the start and end dates as well as the monthly frequency. 
 <u>**Jungfraujoch temperature data preparation**</u>
 ```{r jungfraujoch_temperature_data_preparation, include = TRUE}
@@ -346,51 +347,170 @@ head(massa_monthly_mean_stl)  # for checking
 # )
 ```
 
-# Modeling
+# Merge Data
+For convenience for further modelling we merged the preprocessed datasets jungfraujoch_temperature, glacier_mass_balance, mass_waterlevel and brig_rain by the date column. Due to different start and end dates we chose to keep the overlapping time period (01/01/1981 to 01/12/2020) in order to get a complete dataset.
 
-## Crosscorrelation (Valérie)
-## ARIMAX
+<u>**Merge data*</u>
+```{r merge_data, include = TRUE}
+# laod data
+df_jungfrau <- readRDS("../data/processed/jungfraujoch_temperature.rds")
+df_glacier <- readRDS("../data/processed/glacier_monthly_processed.rds")
+df_waterlevel <- readRDS("../data/processed/waterlevel_det_stoch.rds")
+df_precipitation <- readRDS("../data/processed/rain_decomposition.rds")
+# convert date columns to identical format
+# jungfrau
+# Number of rows
+n <- nrow(df_jungfrau)
 
-## EVT (Alois)
-### River Massa
-#### First data analysis massa
+# Create monthly sequence from start year/month
+start_date <- as.Date("1933-01-01")
+df_jungfrau <- df_jungfrau %>%
+  mutate(Date = seq.Date(from = start_date, by = "month", length.out = n))
+# glacier
+df_glacier <- df_glacier %>%
+  mutate(Date = as.Date(year_month))
+# waterlevel
+# Map German month abbreviations to month numbers
+month_map <- c(
+  "Jan" = 1, "Feb" = 2, "Mär" = 3, "Apr" = 4,
+  "Mai" = 5, "Jun" = 6, "Jul" = 7, "Aug" = 8,
+  "Sep" = 9, "Okt" = 10, "Nov" = 11, "Dez" = 12
+)
 
-<u>**EVT Massa Data Preparation**</u>
-```{r evt_massa_preparation, echo=FALSE}
-# # Read data
-# df_massa <- raw_massa
-# 
-# ## Time Series Massa River - daily data
-# freq_daily <- 365.2422
-# 
-# ts_watervolume_massa <- ts(df_massa$discharge_vol_m3s, 
-#               start = c(year(min(df_massa$date_yyyymmdd)),
-#                         yday(min(df_massa$date_yyyymmdd))), 
-#               frequency = freq_daily)
-# 
-# 
-# # creating dataframe out of ts_watervolume_massa
-# #----------------------------
-# # defining start date
-# massa_start_date <- as.Date("1981-01-01")
-# # length of time series
-# n <- length(ts_watervolume_massa)
-# # creating date
-# massa_dates <- seq.Date(from = massa_start_date, by = "day", length.out = n)
-# 
-# df_massa_prep <- data.frame(
-#   Date = massa_dates,
-#   Watervolume = ts_watervolume_massa
-# )
-# 
-# #----------------------------------------------------------------------
-# #----------------------------------------------------------------------
-# #First insights of massa data / creating ts
-# 
-# #plotting massa data / watervolume
-# plot(ts_watervolume_massa, main = "Massa daily discharge volume in m^3/s 1980 - 2020")
+df_waterlevel <- df_waterlevel %>%
+  mutate(
+    # split year_month into month abbreviation and year
+    Month = sapply(strsplit(year_month, " "), `[`, 1),
+    Year  = as.numeric(sapply(strsplit(year_month, " "), `[`, 2)),
+    Month = month_map[Month],                        # map to numeric month
+    Date  = as.Date(paste0(Year, "-", Month, "-01")) # create Date
+  ) %>%
+  select(-Month, -Year, -year_month)  # remove helper columns
+# precipiation
+str(df_precipitation) # already in right format
+
+# merge by dates, full outer join
+df_merged <- df_jungfrau %>%
+  select(Date, observed, trend, seasonal, remainder) %>%
+  full_join(df_glacier %>%
+              select(Date, mass_balance_monthly, trend, seasonal, deterministic, stochastic),
+            by = "Date", suffix = c("_jungfrau", "_glacier")) %>%
+  full_join(df_waterlevel %>%
+              select(Date, waterlevel_m, trend, seasonal, deterministic, stochastic),
+            by = "Date", suffix = c("", "_waterlevel")) %>%
+  full_join(df_precipitation %>%
+              select(Date, Original, Trend, Seasonal, Remainder),
+            by = "Date", suffix = c("", "_precipitation")) %>%
+  arrange(Date)
+
+# rename columns
+df_merged <- df_merged %>%
+  rename(
+    # Jungfrau
+    observed_jungfrau = observed,
+    trend_jungfrau = trend_jungfrau,
+    seasonal_jungfrau = seasonal_jungfrau,
+    remainder_jungfrau = remainder,
+    
+    # Glacier
+    mass_balance_glacier = mass_balance_monthly,
+    trend_glacier = trend_glacier,
+    seasonal_glacier = seasonal_glacier,
+    deterministic_glacier = deterministic,
+    stochastic_glacier = stochastic,
+    
+    # Waterlevel
+    waterlevel = waterlevel_m,
+    trend_waterlevel = trend,
+    seasonal_waterlevel = seasonal,
+    deterministic_waterlevel = deterministic_waterlevel,
+    stochastic_waterlevel = stochastic_waterlevel,
+    
+    # Precipitation
+    precipitation = Original,
+    trend_precipitation = Trend,
+    seasonal_precipitation = Seasonal,
+    remainder_precipitation = Remainder
+  )
+
+# select same time span
+# Find first and last date of each dataset
+start_jungfrau <- min(df_merged$Date[!is.na(df_merged$observed_jungfrau)])
+end_jungfrau   <- max(df_merged$Date[!is.na(df_merged$observed_jungfrau)])
+
+start_glacier  <- min(df_merged$Date[!is.na(df_merged$mass_balance_glacier)])
+end_glacier    <- max(df_merged$Date[!is.na(df_merged$mass_balance_glacier)])
+
+start_water    <- min(df_merged$Date[!is.na(df_merged$waterlevel)])
+end_water      <- max(df_merged$Date[!is.na(df_merged$waterlevel)])
+
+start_precip   <- min(df_merged$Date[!is.na(df_merged$precipitation)])
+end_precip     <- max(df_merged$Date[!is.na(df_merged$precipitation)])
+
+# Overlapping date range
+start_overlap <- max(start_jungfrau, start_glacier, start_water, start_precip)
+end_overlap   <- min(end_jungfrau, end_glacier, end_water, end_precip)
+
+df_merged_overlap <- df_merged %>%
+  filter(Date >= start_overlap & Date <= end_overlap)
+
+str(df_merged_overlap)
+head(df_merged_overlap)
+colSums(is.na(df_merged_overlap))
+any(is.na(df_merged_overlap)) # no NAs
+
+# create processed data file
+write.csv(df_merged_overlap, "../data/processed/df_merged.csv", row.names = FALSE)
+# RDS
+saveRDS(df_merged_overlap, "../data/processed/df_merged.rds")
+
+```
+# Modelling
+
+## Cross-Correlation Analysis
+To investigate potential linear relationships between the different time series, we use the cross-correlation function (ccf). For this we only need the stationary remainder components of each time series, since we want to avoid spurious correlations caused by trends and seasonal components. 
+<u>**Create dataframe for Cross-Correlation Analysis**</u>
+```{r dataframe_ccf, include = TRUE, warning=FALSE, message=FALSE}
+# select the columns relevant for cross-correlation analysis
+df_ccf <- df_merged_overlap %>%
+  select(
+    Date,
+    remainder_jungfrau,
+    remainder_precipitation,
+    stochastic_glacier,
+    stochastic_waterlevel
+  )
+# convert back to time series objects
+# Number of observations
+n <- nrow(df_ccf)
+# Create time series objects (monthly frequency)
+# Example: temperature and glacier mass balance
+start_year <- year(min(df_ccf$Date))
+start_month <- month(min(df_ccf$Date))
+
+# Create monthly time series objects
+temp_ts <- ts(df_ccf$remainder_jungfrau,
+              start = c(start_year, start_month),
+              frequency = 12)
+
+glacier_ts <- ts(df_ccf$stochastic_glacier,
+                 start = c(start_year, start_month),
+                 frequency = 12)
+precip_ts <- ts(df_ccf$remainder_precipitation,
+                start = c(start_year, start_month),
+                frequency = 12)
+
+waterlevel_ts <- ts(df_ccf$stochastic_waterlevel,
+                    start = c(start_year, start_month),
+                    frequency = 12)
 ```
 
+<u>**CCF Jungfraujoch Temperature & Glacier Mass Balance**</u>
+```{r ccf_jungfraujoch_temperature_glacier_mass_balance, include = TRUE, warning=FALSE, message=FALSE}
+
+```
+
+# Extreme Value Theory (EVT)
 <u>**EVT Massa Histogram**</u>
 ```{r EVT_histogram_massa, include = TRUE, warning=FALSE, message=FALSE}
 # histogram
