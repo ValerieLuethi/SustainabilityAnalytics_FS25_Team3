@@ -505,7 +505,8 @@ waterlevel_ts <- ts(df_ccf$stochastic_waterlevel,
                     frequency = 12)
 ```
 
-When looking at the output of the cross-correlation function between Jungfraujoch temperature and glacier mass balance the correlations are very weak (|r| < 0.3), indicating little to no relationship between the two variables. At a first glance this result surprised us. Yet when considering that the glacier mass balance data originally was bi-annually and we interpolated it to monthly values, the weak correlation became understandable. With the interpolation to monthly values the glacier mass balance data was artificially flattened making it impossible to find any relationship with temperature.
+When looking at the output of the cross-correlation function between Jungfraujoch temperature and glacier mass balance the correlations are very weak (|r| < 0.3), indicating little to no relationship between the two variables. At a first glance this result surprised us. Yet when considering that the glacier mass balance data originally was bi-annually and we interpolated it to monthly values, the weak correlation became understandable. With the interpolation to monthly values the glacier mass balance data was artificially flattened making it impossible to find any relationship with temperature. The same argumentation applies to the cross-correlation function between glacier mass balance the waterlevel of the river Massa.
+
 <u>**CCF Jungfraujoch Temperature & Glacier Mass Balance**</u>
 ```{r ccf_jungfraujoch_temperature_glacier_mass_balance, include = TRUE, warning=FALSE, message=FALSE}
 temp_scaled <- scale(temp_ts)
@@ -516,6 +517,39 @@ legend("topright", legend=c("Temperature Jungfraujoch", "Glacier Mass Balance"),
 ccf(glacier_ts, temp_ts) # temperature leads
 ccf(temp_ts, glacier_ts) # glacier leads
 ```
+<u>**CCF Glacier Mass Balance & Massa Waterlevel**</u>
+```{r ccf_glacier_mass_balance_waterlevel, include = TRUE, warning=FALSE, message=FALSE}
+glacier_scaled <- scale(glacier_ts)
+waterlevel_scaled <- scale(waterlevel_ts)
+plot(glacier_scaled, type="l", col="orange", lwd=2, ylab="Scaled value", xlab="Time")
+lines(waterlevel_scaled, col="blue", lwd=2)
+legend("topright", legend=c("Glacier Mass Balance", "Waterlevel Massa"), col=c("orange","blue"), lty=1)
+ccf(waterlevel_ts, glacier_ts) # glacier leads
+ccf(glacier_ts, waterlevel_ts) # waterlevel leads
+```
+For the cross-correlation function between the Jungfraujoch temperature and the waterlevels Massa we can observe that temperature is leading with significant positive correlations at lags 0, 1 and 3. This is in line with our hypothesis that higher temperatures lead to increased snow melt, which then raises water levels with some delay. The negative correlations at lags 9 and 10 are likely due to the correlation of past high summer temperatures with low winter water levels. 
+<u>**CCF Jungfraujoch Temperature & Massa Waterlevel**</u>
+```{r ccf_jungfraujoch_temperature_waterlevel, include = TRUE, warning=FALSE, message=FALSE}
+temp_scaled <- scale(temp_ts)
+waterlevel_scaled <- scale(waterlevel_ts)
+plot(temp_scaled, type="l", col="orange", lwd=2, ylab="Scaled value", xlab="Time")
+lines(waterlevel_scaled, col="blue", lwd=2)
+legend("topright", legend=c("Temperature Jungfraujoch", "Waterlevel Massa"), col=c("orange","blue"), lty=1)
+ccf(waterlevel_ts, temp_ts) # temperature leads
+ccf(temp_ts, waterlevel_ts) # waterlevel leads
+```
+The cross-correlation analysis between the monthly precipitations in Brig and the monthly waterlevels of Massa shows no significant relationship. Due to the use of monthly data it is possible that short-term effects were smoothed out. It might also be the case that precipitations in the valley in Brig does not reflect the hdydrological processes in the glacial upstream cachement of the river Massa. In further analysis snow and glacier melt should be taken into account as well. In addition, using the water discharge instead of water level could provide a more direct measure of the river's hydrological response.
+<u>**CCF Precipitation Brig & Massa Waterlevel**</u>
+```{r ccf_precipitation_waterlevel, include = TRUE, warning=FALSE, message=FALSE}
+precip_scaled <- scale(precip_ts)
+waterlevel_scaled <- scale(waterlevel_ts)
+plot(precip_scaled, type="l", col="orange", lwd=2, ylab="Scaled value", xlab="Time")
+lines(waterlevel_scaled, col="blue", lwd=2)
+legend("topright", legend=c("Precipitation Brig", "Waterlevel Massa"), col=c("orange","blue"), lty=1)
+ccf(waterlevel_ts, precip_ts) # precipitation leads
+ccf(precip_ts, waterlevel_ts) # waterlevel leads
+```
+
 
 # Extreme Value Theory (EVT)
 <u>**EVT Massa Histogram**</u>
