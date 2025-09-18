@@ -57,34 +57,23 @@ Hinweis für Ramona: Falls wir für die Einleitung oder Abstrakt keine Auflistun
 
 # Datapreparation/Cleaning
 
+The [feature explanation](#Table_feature_exp) can be found in the appendix.
+
 <u>**Loading Data**</u>
 ```{r loading_data, include= TRUE, echo=TRUE}
 # Reading in data
-# for massa, rhone and glacier: why are the processed csv loaded instead of the raw data?
+# for massa, rhone: why are the processed csv loaded instead of the raw data?
 raw_massa <- read.csv('../data/processed/massa_cleaned.csv', header=TRUE, sep=',', na.strings='-')
 raw_rhone <- read.csv('../data/processed/rhone_cleaned.csv', header=TRUE, sep=',', na.strings='-')
-raw_glacier <- read.csv('../data/processed/glacier_cleaned.csv', header=TRUE, sep=',', na.strings='-')
-raw_glacier_monthly <- read.csv('../data/processed/glacier_monthly_processed.csv', header=TRUE, sep=',', na.strings='-')
+raw_glacier <- read.csv('../data/raw/massbalance_observation.csv', header=TRUE, sep=';', na.strings='-')
 raw_jungfraujoch <- read.csv("../data/raw/weather_monthly_jungfraujoch.csv", header=TRUE, sep=';', na.strings='-')
 raw_brigrain <- read.csv('../data/raw/weather_rain_monthly_brig.csv', header=TRUE, sep=';', na.strings='-')
-
 ```
 
 
-## Jungfraujoch Temperature (Valerie)
+## Jungfraujoch Temperature
 The homogeneous data series from the Jungfraujoch climate station is available on demand via [MeteoSchweiz OpenData](https://www.meteoswiss.admin.ch/services-and-publications/service/open-data.html). The station is located 3571 meters above sea level and located in the Aletsch area. We were interested in the measurement of the homogeneous monthly mean temperature covering the time span from 01/01/1933 to 01/07/2025. The temperature in Celsius was measured 2 meters above ground.
 
-## River Massa (Ramona)
-## Glacier (Vani)
-
-
-# Exploratory Data Analysis (Vani)
-
-
-# Stationarity
-
-## Temperature Jungfraujoch (Valérie)
-### Datapreparation
 The raw Jungfraujoch weather data set was prepared by first converting the reference_timestamp column into a proper datetime format. Then the data set was reduced to the columns necessary for our analysis (station_abbr, reference_timestamp, temp_mean_C). For clarity columns were renamed. A check for missing values, confirmed that there were none. Finally a time series object of the mean temperature values was created, specifying the start and end dates as well as the monthly frequency. 
 <u>**Jungfraujoch temperature data preparation**</u>
 ```{r jungfraujoch_temperature_data_preparation, include = TRUE}
@@ -98,22 +87,135 @@ df_jungfraujoch_reduced <- df_jungfraujoch %>%
 colnames(df_jungfraujoch_reduced) <- c('station_abbr', 'reference_timestamp', 'temp_mean_C')
 # check for NAs
 colSums(is.na(df_jungfraujoch_reduced)) # no NAs
-# create time series object
-# temp_mean monthly series
-ts_jungfraujoch <- ts(df_jungfraujoch_reduced$temp_mean_C,
-                      start = c(1933, 1),
-                      end = c(1933 + (nrow(df_jungfraujoch_reduced)-1) %/% 12,
-                              (nrow(df_jungfraujoch_reduced)-1) %% 12 + 1),
-                      frequency = 12)
-str(ts_jungfraujoch)
 ```
-A look at the summary statistics reveals that monthly mean temperatures at Jungfraujoch are predominantly below freezing, ranging from extremely cold (-21.7 C°) to just above freezing (3.5 C°). This is consistent with the high-altitude alpine climate.
-The plot of monthly mean temperatures shows clear seasonal oscillations, with cold winters and milder summers. There is also a slight upward trend, suggesting that the mean tempertures might increase gradually over the years. This could hint at the climate getting warmer.
+
+## Glacier
+The data is sourced from Glacier Monitoring in Switzerland (GLAMOS). Direct measurements of glacier mass balance – the sum of snow accumulation and snow/ice melt – are carried out on selected glaciers in Switzerland, based on point observations, typically acquired in April/May and September. 
+For clarity, unnecessary columns were removed and the others were renamed. We were interested in information specifically regarding "Grosser Aletschgletscher" hence the dataset was filtered to just the relevant rows. We converted the date columns into proper datetime format. A check for missing values, confirmed that there were none.
+
+```{r glacier_data_preparation, include = TRUE, echo = TRUE}
+## remove unwanted columns
+df_glacier <- raw_glacier %>% 
+  select(-c("glacier.id", "observer", "X", "X.1", "X.2", "minimum.elevation.of.glacier", "maximum.elevation.of.glacier" ))
+## rename columns to standard format
+colnames(df_glacier) <- c("glacier_name", "obs_start_date", "obs_winter_end_date", "obs_end_date", "winter_mass_balance_mmwe",
+                          "summer_mass_balance_mmwe", "annual_mass_balance_mmwe","equilibrium_line_altitude_m", 
+                          "accumulation_area_ratio", "glacier_area_m2")
+## filter out rows of unwanted glaciers
+df_glacier <- df_glacier %>%
+  filter(glacier_name == "Grosser Aletschgletscher")
+## convert relevant columns to date type values
+df_glacier <- df_glacier %>%
+  mutate(across(c(obs_start_date, obs_winter_end_date, obs_end_date), 
+                ~ as.Date(.x, format = "%d.%m.%Y")))
+head(df_glacier)
+## check for NAs
+colSums(is.na(df_glacier))
+```
+
+In order to perform correlation analysis, the bi-annual mass balance values were extrapolated to monthly values using weighted averages derived from the Jungfraujoch temperature data. 
+
+```{r glacier_monthly_data_preparation, include = TRUE, echo = TRUE}
+
+## Function to allocate seasonal mass balance by fixed calendar seasons
+allocate_mass_balance_per_year <- function(row, df_jungfraujoch_reduced){
+  
+  obs_year <- year(row$obs_start_date)  # Observation year for this glacier row
+  # Add helper columns
+  df_jungfraujoch_reduced <- df_jungfraujoch_reduced %>%
+    mutate(
+      year_num = year(reference_timestamp),
+      month_num = month(reference_timestamp),
+      year_month = format(reference_timestamp, "%Y-%m"),
+      temp_mean_C = as.numeric(temp_mean_C)
+    )
+  
+  ## Winter months: Oct–Dec from previous year, Jan–Apr from current observation year
+  winter_climate <- df_jungfraujoch_reduced %>%
+    filter((month_num %in% 10:12 & year_num == (obs_year - 1)) |
+             (month_num %in% 1:4 & year_num == obs_year))
+  
+  winter_weights <- abs(winter_climate$temp_mean_C)
+  if(sum(winter_weights) == 0) winter_weights <- rep(1/nrow(winter_climate), nrow(winter_climate))
+  winter_weights <- winter_weights / sum(winter_weights)
+  winter_alloc <- winter_weights * row$winter_mass_balance_mmwe
+  
+  ## Summer months: May–Sep of current observation year
+  summer_climate <- df_jungfraujoch_reduced %>%
+    filter(month_num %in% 5:9 & year_num == obs_year)
+  
+  summer_weights <- abs(summer_climate$temp_mean_C)
+  if(sum(summer_weights) == 0) summer_weights <- rep(1/nrow(summer_climate), nrow(summer_climate))
+  summer_weights <- summer_weights / sum(summer_weights)
+  summer_alloc <- summer_weights * row$summer_mass_balance_mmwe
+  
+  ## Combine summer and winter calculations
+  dates <- c(winter_climate$year_month, summer_climate$year_month)
+  alloc <- c(winter_alloc, summer_alloc)
+  
+  ## Return monthly allocation
+  data.frame(
+    year_month = dates,
+    month = c(winter_climate$month_num, summer_climate$month_num),
+    mass_balance_monthly = alloc
+  )
+}
+
+## Construct df_glacier_monthly
+df_glacier_monthly <- bind_rows(lapply(1:nrow(df_glacier), function(i){
+  allocate_mass_balance_per_year(df_glacier[i, ], df_jungfraujoch_reduced)
+}))
+
+head(df_glacier_monthly,20)
+```
+
+## River Massa (Ramona)
+
+## Brig Rain
+
+```{r brig_rain_data_preparation, include = TRUE}
+raw_brigrain$Date <- as.Date(raw_brigrain$reference_timestamp, format = "%d.%m.%Y")
+
+df_rain <- raw_brigrain %>% select(Date, rhs150m0)
+#plot(df_rain)
+
+# defining starting year and month
+start_year_brig  <- year(min(df_rain$Date))
+start_month_brig <- month(min(df_rain$Date))
+```
+
+
+
+# Exploratory Data Analysis (Vani)
+
+### Temperature
 <u>**Jungfraujoch temperature data exploration**</u>
 ```{r jungfraujoch_temperature_data_exploration, include = TRUE}
-summary(ts_jungfraujoch)
-plot(ts_jungfraujoch, main="Jungfraujoch Monthly Mean Temperature", ylab="°C", xlab="Year")
+ts_temp <- ts(df_jungfraujoch_reduced$temp_mean_C,
+              start = min(df_jungfraujoch_reduced$reference_timestamp),
+              frequency = 12)   # monthly data (12 obs per year)
+
+str(ts_temp)
+summary(ts_temp)
+
+# Plot observed temp with LOWESS trend
+plot(ts_temp,
+     ylab = "Observed Temperature (°C)",
+     xlab = "Year",
+     col = "blue", lwd = 1,
+     main = "Observed Jungfrau Temperature")
+
+# Add smoothed trend line
+lines(lowess(time(ts_temp), ts_temp), col = "red", lwd = 2)
+
 ```
+A look at the summary statistics reveals that monthly mean temperatures at Jungfraujoch are predominantly below freezing, ranging from extremely cold (-21.7 C°) to just above freezing (3.5 C°). This is consistent with the high-altitude alpine climate.
+The plot of monthly mean temperatures shows clear seasonal oscillations, with cold winters and milder summers. There is also a slight upward trend, suggesting that the mean temperatures might increase gradually over the years. This could hint at the climate getting warmer.
+
+# Stationarity
+
+## Temperature Jungfraujoch
+
 ### Stationarity
 We further check the stationarity of the time series by inspecting the ACF and PACF. The ACF shows a strong seasonal pattern reflecting the annual temperature cycle. The PACF indicates that monthly mean temperatures are influenced by the previous month (lag 1). Then shows a negative connection for the next few months (lags 2 to 6) and a positive connection again (lags 8 to 13). This is likely due to temperature changes following a seasonal pattern, where each month corresponds to a specific period (e.g. season). 
 <u>**Jungfraujoch ACF and PACF**</u>
@@ -186,30 +288,14 @@ saveRDS(df_jungfraujoch_processed, "../data/processed/jungfraujoch_temperature.r
 
 ## Rainfall Brig (Alois)
 
-### Datapreparation
-
-<u>**Brig rain data preparation**</u>
-```{r brig_rain_data_preparation, include = TRUE}
-raw_brigrain$Date <- as.Date(raw_brigrain$reference_timestamp, format = "%d.%m.%Y")
-
-df_rain <- raw_brigrain %>% select(Date, rhs150m0)
-#plot(df_rain)
-
-# defining starting year and month
-start_year_brig  <- year(min(df_rain$Date))
-start_month_brig <- month(min(df_rain$Date))
-
-# creating ts-object on a monthly basis
-rain_ts <- ts(df_rain$rhs150m0,
-              start = c(start_year_brig, start_month_brig),
-              frequency = 12)   # 12 month per year
-```
-
-
 ### Stationarity with stl
 
 <u>**Brig rain stl**</u>
 ```{r brig_rain_stl, include = TRUE}
+# creating ts-object on a monthly basis
+rain_ts <- ts(df_rain$rhs150m0,
+              start = c(start_year_brig, start_month_brig),
+              frequency = 12)   # 12 month per year
 stl_1 <- stl(rain_ts, s.window =122, t.window=115)
 plot(stl_1)
 remainder_stl1 <- stl_1$time.series[,"remainder"]
@@ -346,6 +432,7 @@ head(massa_monthly_mean_stl)  # for checking
 #   "stationary_monthly_mean_watervolume_massa.rds"
 # )
 ```
+
 
 # Merge Data
 For convenience for further modelling we merged the preprocessed datasets jungfraujoch_temperature, glacier_mass_balance, mass_waterlevel and brig_rain by the date column. Due to different start and end dates we chose to keep the overlapping time period (01/01/1981 to 01/12/2020) in order to get a complete dataset.
@@ -813,69 +900,12 @@ hq_table_rhone
 
 # Appendix
 
+## Feature Explanation of the dataset {#Table_feature_exp}
 
+### Glacier Data
 
+Winter/Summer/Annual mass balance (Bw/Bs/Ba) → millimeters water equivalent (mm w.e.), representing the amount of snow accumulated in winter/summer/annually converted to the equivalent depth of water. 
+The Equilibrium Line Altitude (ELA) -> the elevation on a glacier where annual accumulation equals annual ablation. (If temperatures rise or snowfall decreases, the ELA rises.)
+Minimum and maximum elevation of glacier → Determines vertical gradient and exposure to temperature changes.
+Accumulation Area Ratio -> Area of Accumulation Zone / Total Glacier Area. It is used as a climate/glacier health indicator. If the AAR is lower (e.g. 0.2), it means the glacier is losing mass and shrinking.
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-# Examples for formatting
-
-<u>**Datapreparation of Brig_Rain dataset**</u>
-```{r rain_brig_datapreparation, include=TRUE, warning=FALSE, message=FALSE, echo=TRUE, results='hide'}
-#code
-```
-## H2
-
-### H3 {#chapter-with-features}
-
-<u>**----->"Header for the Code Block1<------**</u>
-```{r first_subset_feature_exp, include=TRUE, warning=FALSE, message=FALSE, echo=TRUE}
-#code
-```
-<u>**----->"Header for the Code Block1<------**</u>
-```{r first_subset_feature_exp1, include=TRUE, warning=FALSE, message=FALSE, echo=TRUE}
-#code
-```
-
-The [feature explanation](#Table_feature_exp) can be found in the appendix.
-
-
-
-
-
-
-## Appendix
-
-### Feature Explanation of the dataset {#Table_feature_exp}
-
-This section provides further explanations for the dataset.
-
-```{r data_dict, include=TRUE, warning=FALSE, message=FALSE, echo=TRUE}
-
-```
-
-[Back to Chapter 'H3'](#chapter-with-features)
