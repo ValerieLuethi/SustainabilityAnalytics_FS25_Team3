@@ -75,7 +75,6 @@ raw_brigrain <- read.csv('../data/raw/weather_rain_monthly_brig.csv', header=TRU
 The homogeneous data series from the Jungfraujoch climate station is available on demand via [MeteoSchweiz OpenData](https://www.meteoswiss.admin.ch/services-and-publications/service/open-data.html). The station is located 3571 meters above sea level and located in the Aletsch area. We were interested in the measurement of the homogeneous monthly mean temperature covering the time span from 01/01/1933 to 01/07/2025. The temperature in Celsius was measured 2 meters above ground.
 
 The raw Jungfraujoch weather data set was prepared by first converting the reference_timestamp column into a proper datetime format. Then the data set was reduced to the columns necessary for our analysis (station_abbr, reference_timestamp, temp_mean_C). For clarity columns were renamed. A check for missing values, confirmed that there were none. Finally a time series object of the mean temperature values was created, specifying the start and end dates as well as the monthly frequency. 
-<u>**Jungfraujoch temperature data preparation**</u>
 ```{r jungfraujoch_temperature_data_preparation, include = TRUE}
 # convert timestamp to datetime format
 df_jungfraujoch <- raw_jungfraujoch %>%
@@ -108,7 +107,6 @@ df_glacier <- df_glacier %>%
 df_glacier <- df_glacier %>%
   mutate(across(c(obs_start_date, obs_winter_end_date, obs_end_date), 
                 ~ as.Date(.x, format = "%d.%m.%Y")))
-head(df_glacier)
 ## check for NAs
 colSums(is.na(df_glacier))
 ```
@@ -189,7 +187,6 @@ start_month_brig <- month(min(df_rain$Date))
 # Exploratory Data Analysis (Vani)
 
 ### Temperature
-<u>**Jungfraujoch temperature data exploration**</u>
 ```{r jungfraujoch_temperature_data_exploration, include = TRUE}
 ts_temp <- ts(df_jungfraujoch_reduced$temp_mean_C,
               start = min(df_jungfraujoch_reduced$reference_timestamp),
@@ -220,6 +217,14 @@ The plot of monthly mean temperatures shows clear seasonal oscillations, with co
 We further check the stationarity of the time series by inspecting the ACF and PACF. The ACF shows a strong seasonal pattern reflecting the annual temperature cycle. The PACF indicates that monthly mean temperatures are influenced by the previous month (lag 1). Then shows a negative connection for the next few months (lags 2 to 6) and a positive connection again (lags 8 to 13). This is likely due to temperature changes following a seasonal pattern, where each month corresponds to a specific period (e.g. season). 
 <u>**Jungfraujoch ACF and PACF**</u>
 ```{r jungfraujoch_temperature_acf_pacf, include = TRUE}
+# create time series object
+# temp_mean monthly series
+ts_jungfraujoch <- ts(df_jungfraujoch_reduced$temp_mean_C,
+                      start = c(1933, 1),
+                      end = c(1933 + (nrow(df_jungfraujoch_reduced)-1) %/% 12,
+                              (nrow(df_jungfraujoch_reduced)-1) %% 12 + 1),
+                      frequency = 12)
+
 # acf and pacf
 acf(ts_jungfraujoch) # acf indicates seasonality
 pacf(ts_jungfraujoch) # damped sinusoid
