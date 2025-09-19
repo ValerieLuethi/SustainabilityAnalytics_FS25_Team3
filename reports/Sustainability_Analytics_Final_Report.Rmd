@@ -644,19 +644,59 @@ ccf(precip_ts, waterlevel_ts) # waterlevel leads
 
 
 # Extreme Value Theory (EVT)
+
+## River Massa
+
+For the EVT analysis, we take a closer look at the water discharge of the Massa River, measured in cubic meters per second (m³/s), as it provides a reliable indication of the river’s flow volume.
+
+In addition, there exists a report by the BAG [Hochwasserstatistik - Stationsbericht: Massa - Blatten bei Naters](https://www.hydrodaten.admin.ch/documents/Hochwasserstatistikberichte/2161_hq_Bericht.pdf) addressing the same subject. While their dataset spans the years 1925–2015, our analysis is based on data from 1980–2020.
+
+By comparing the plots, it becomes apparent that the BAG dataset contains many observations exceeding 100 m³/s, whereas our dataset does not surpass this threshold, despite overlapping observation periods. A key difference is that the BAG report is based on daily maximum values, whereas our analysis uses daily mean values.
+
+<u>**Daily maximum water discharge plot of river Massa (Screenshot out of BAG report)**</u>
+```{r EVT_bag_report_massa, include = TRUE, warning=FALSE, message=FALSE, out.width="100%"}
+knitr::include_graphics('../data/raw/BAG_Massa_Discharge_Plot.png')
+```
+
+<u>**Daily mean water discharge plot of river Massa**</u>
+```{r EVT_daily_mean_massa, include = TRUE, warning=FALSE, message=FALSE, out.width="100%"}
+ggplot(df_massa_prep, aes(x=df_massa_prep$Date, y=df_massa_prep$Watervolume)) +
+  geom_point(size = 0.5) +
+  labs(
+    title = "Water mean discharge of river Massa",
+    x = "Date",
+    y = "Water Discharge (m^3/s)"
+  ) +
+  theme_minimal()
+
+```
+
+When cross-checking our data with the [Massa – Blatten bei Naters](https://www.hydrodaten.admin.ch/en/seen-und-fluesse/stations/2161#waterlevel-annual) records, which also provide daily mean values, we find identical results, confirming the accuracy and reliability of our dataset.
+
+Due to the differences in data sources and measurement approaches, it is likely that our EVT results will differ from those presented in the BAG report. Nevertheless, the BAG report remains a valuable reference, allowing us to assess whether our findings exhibit similar patterns.
+
+### Histogram of water discharge of river Massa
+
+The histogram exhibits a pronounced right-skewed distribution, which at first glance might seem counterintuitive. This can be attributed to the hydrological regime of the Massa River, which is almost exclusively sustained by glacial meltwater and precipitation within the valley. During the winter season, precipitation is minimal and the glacier contributes no meltwater, leading to extended periods of zero discharge. As a result, the histogram displays a high frequency of zero values. In contrast, the extreme discharge events, which occur only very occasionally during the observation period of 1980-2020, reach values of nearly 100 m³/s.
+
 <u>**EVT Massa Histogram**</u>
-```{r EVT_histogram_massa, include = TRUE, warning=FALSE, message=FALSE}
+```{r EVT_histogram_massa, include = TRUE, warning=FALSE, message=FALSE, out.width="100%"}
 # histogram
 p_massa <- ggplot(df_massa_prep, aes(x=Watervolume)) + 
   geom_histogram() +
-  ggtitle("Histogramm of massa watervolume in m^3/s")
+  ggtitle("Histogramm of massa water discharge in m^3/s") +
+  theme_minimal()
 plot(p_massa)
 ```
 
-#### Plotting lm-trend line
+### Plotting lm-trend line
+
+By plotting the trend line of the Massa River discharge over the observed period, we can observe a positive trend. When constructing a trend line based only on the upper 95 quantile values, we obtain a very similar trend, differing only in its offset/intercept.
+
+This indicates that the extreme values follow the same long-term trend as the overall data. For Extreme Value Theory (EVT) analysis, this is important because it suggests that the data can be treated as approximately stationary once the trend is accounted for. If the trends differed significantly, it would be necessary to remove the trend from the extreme values before applying EVT to ensure valid modeling of the extremes.
 
 <u>**EVT Massa Data Preparation**</u>
-```{r EVT_massa, include = TRUE, warning=FALSE, message=FALSE}
+```{r EVT_massa, include = TRUE, warning=FALSE, message=FALSE, out.width="100%"}
 # defining trend lm
 massa_t_lm <- lm(Watervolume ~ Date, data = df_massa_prep)
 
@@ -679,25 +719,39 @@ ggplot(df_massa_prep, aes(x = Date, y = Watervolume)) +
   geom_abline(data = trend_df,
               aes(intercept = intercept, slope = slope, color = type),
               size = 1) +
-  labs(title = "Watervolum with trend lines",
+  labs(title = "Water discharge with trend lines",
        x = "Year", y = expression("m"^3*"/s"),
        color = "Trend type") +
   theme_minimal()
 ```
 
-#### EVT Peaks over Threshold (POT)
+### EVT Peaks over Threshold (POT)
+
+By setting the threshold at the upper 0.998 quantile, we obtain 30 observations that align well on the quantile plot, indicating an approximately normal distribution.
+
+The return level plot illustrates and predicts the frequency of extreme events. It also shows that the observed values follow the fitted trend line closely. Since the POT method was applied, the return period is expressed on a daily logistic basis.
+
+The return level plot further suggests that approximately every 1,000 days an extreme event of around 100 m³/s may occur. The curve exhibits a logarithmic-like shape, gradually flattening at a level close to 100 m³/s.
+
 
 <u>**EVT POT massa**</u>
 ```{r EVT_modeling_threshold_massa, include = TRUE}
 #EVT original data on upper quantil
 threshold_massa_evt <- quantile(df_massa_prep$Watervolume, 0.998)
+#Amount of observation points
+sum(df_massa_prep$Watervolume > threshold_massa_evt)
 massa_ex <- df_massa_prep %>% filter(df_massa_prep$Watervolume > threshold_massa_evt)
 massa_ex_fit <- gev.fit(massa_ex$Watervolume)
 gev.diag(massa_ex_fit) # -> Return Period is on a daily scale
 massa_ex_fit$mle
 ```
 
-#### EVT Block Max Year 
+### EVT Block Max Year
+
+With the Block Maxima (yearly) method, we consider the maximum water discharge value of each year. When plotted, the resulting quantile plot shows that the observations align closely with the reference line.
+
+The return level plot illustrates and predicts the frequency of extreme events on a yearly scale. Its shape closely resembles that of the POT approach. After approximately 10 years, the curve approaches a value of around 95 m³/s and levels off into a plateau at approximately 100 m³/s, without exceeding it. This suggests that even over a 1,000-year return period, the discharge is unlikely to surpass 100 m³/s.
+
 
 <u>**EVT Block max year massa**</u>
 ```{r EVT_modeling_block_max_massa, include = TRUE}
@@ -720,6 +774,8 @@ massa_max_year_fit$mle
 ```
 
 #### EVT HQ Values
+
+The ‘EVT HQ Block Max Massa’ table provides a clear and easily interpretable overview of the extreme values. It lists the return periods in years and the corresponding HQ values (High-Flood Discharge, Hochwasserkennwert) in m³/s. It corresponds to the Return Level Plot of the Block Max approach.
 
 <u>**EVT HQ block max Massa**</u>
 ```{r EVT_modeling_hq_massa, include = TRUE}
@@ -745,6 +801,16 @@ HQ_massa <- qgev(p, loc=loc_massa, scale=scale_massa, shape=shape_massa)
 hq_table_massa <- data.frame(ReturnPeriod = return_periods_massa, HQ = HQ_massa)
 hq_table_massa
 ```
+
+### Conclusion
+
+Our EVT analysis for the Massa River does not predict any extreme events approaching the “Bemessungshochwasser” of the Gibidum Dam. This indicates that the dam was appropriately dimensioned at the time of its construction and is capable of withstanding future extreme water discharges.
+
+However, as expected, our results differ from the BAG report, which predicts events of up to 150 m^3/s (depending on the EVT method used) occurring approximately every 300 years. This difference is primarily due to the BAG analysis being based on daily maximum values, whereas our study uses daily mean values. Consequently, their approach is better suited for capturing the absolute extreme events. Nevertheless, even their estimated extremes remain well below the 450 m^3/s design discharge that the Gibidum Dam was engineered to withstand.
+
+Based on these findings, we are confident that the extreme water discharges of the Massa River, as influenced by climate change and its effects on the Aletsch Glacier, do not pose a significant threat in terms of river flow volumes.
+
+What is not addressed in our analysis, however, is the impact of the glacier’s retreat and its associated counterpressure on the valley and surrounding rocks. This may destabilize the ground and trigger landslides, potentially affecting the structural integrity of the dam directly, or indirectly through debris avalanches. Events such as the glacier/rock collapse in Blatten in spring 2025 illustrate how these processes can lead to unpredictable natural disasters.
 
 
 ### River Rhone
@@ -791,7 +857,7 @@ plot(ts_watervolume_rhone, main = "Rhone daily discharge volume in m^3/s 1980 - 
 # histogram
 p_rhone <- ggplot(df_rhone_prep, aes(x=Watervolume)) + 
   geom_histogram() +
-  ggtitle("Histogramm of rhone watervolume in m^3/s")
+  ggtitle("Histogramm of rhone water discharge in m^3/s")
 plot(p_rhone)
 ```
 
@@ -821,7 +887,7 @@ ggplot(df_rhone_prep, aes(x = Date, y = Watervolume)) +
   geom_abline(data = trend_df,
               aes(intercept = intercept, slope = slope, color = type),
               size = 1) +
-  labs(title = "Watervolum with trend lines",
+  labs(title = "Water discharge with trend lines",
        x = "Year", y = expression("m"^3*"/s"),
        color = "Trend type") +
   theme_minimal()
