@@ -897,7 +897,17 @@ hq_table_rhone
 
 # Conclusion
 
-# Outlook (Vani)
+# Outlook
+
+In this section, we look ahead to the future and describe next steps that can be taken to take this research further. 
+
+  * The current analysis would be greatly enhanced by data from the Massa hydro power project. This would help us identify how much artificial regulation of the Massa water levels is performed by the dam. Using this, we can extrapolate the true effect of the melting ice from the glacier on the river.
+  
+  * The project would benefit by extending the analysis to include other contributing factors such as solar radiation, greenhouse gas emissions and local topography such as slope and ascent. All these factors directly affect glacier melt rate thereby adding to rising water levels in the rivers.
+  
+  * Considering a long-term plan, including research from other climate studies would be crucial in improving model accuracy by provide more context on global warming trends, comparative data and analyzing general patterns of how glacier melts affect rivers. 
+  
+  * For a future course of action, the analysis can be extended to other glaciers in Switzerland, and even further to the Alps as a whole. Owing to the large size and surface area of Aletsch glacier, it is more resilient to changing environmental conditions. Hence, studying other glaciers might show evidence of more pressing concerns.
 
 
 # Disclaimer for AI
