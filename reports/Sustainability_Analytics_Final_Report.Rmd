@@ -370,7 +370,7 @@ df_massa_prep <- data.frame(
 #First insights of massa data / creating ts
 
 #plotting massa data / watervolume
-#plot(ts_watervolume_massa, main = "Massa daily discharge volume in m^3/s 1980 - 2020")
+#plot(ts_watervolume_massa, main = "Massa daily discharge volume in m³/s 1980 - 2020")
 ```
 
 #### Monthly average Massa
@@ -395,7 +395,7 @@ ts_watervolume_monthly <- ts(df_massa_monthly$discharge_monthly_mean,
               frequency = 12)
 
 
-plot(ts_watervolume_monthly, main = "Massa mean discharge volume in m^3/s 1980 - 2020")
+plot(ts_watervolume_monthly, main = "Massa mean discharge volume in m³/s 1980 - 2020")
 ```
 
 ##### Stationarity with stl
@@ -643,11 +643,13 @@ ccf(precip_ts, waterlevel_ts) # waterlevel leads
 ```
 
 
-# Extreme Value Theory (EVT)
+# Extreme Value Theory (EVT) {#EVT_Massa_Report}
+
+For the EVT analysis, we focus primarily on the Massa River, while the identical data preparation and visualization steps for the Rhone River are provided in the [appendix](#EVT_Rhone_Appendix). As the Rhone is not the core subject of this project, its results are not discussed in detail in the main body of the report.
 
 ## River Massa
 
-For the EVT analysis, we take a closer look at the water discharge of the Massa River, measured in cubic meters per second (m³/s), as it provides a reliable indication of the river’s flow volume.
+In this section, we take a closer look at the water discharge of the Massa River, measured in cubic meters per second (m³/s), as it provides a reliable indication of the river’s flow volume.
 
 In addition, there exists a report by the BAG [Hochwasserstatistik - Stationsbericht: Massa - Blatten bei Naters](https://www.hydrodaten.admin.ch/documents/Hochwasserstatistikberichte/2161_hq_Bericht.pdf) addressing the same subject. While their dataset spans the years 1925–2015, our analysis is based on data from 1980–2020.
 
@@ -665,7 +667,7 @@ ggplot(df_massa_prep, aes(x=df_massa_prep$Date, y=df_massa_prep$Watervolume)) +
   labs(
     title = "Water mean discharge of river Massa",
     x = "Date",
-    y = "Water Discharge (m^3/s)"
+    y = "Water Discharge (m³/s)"
   ) +
   theme_minimal()
 
@@ -684,7 +686,7 @@ The histogram exhibits a pronounced right-skewed distribution, which at first gl
 # histogram
 p_massa <- ggplot(df_massa_prep, aes(x=Watervolume)) + 
   geom_histogram() +
-  ggtitle("Histogramm of massa water discharge in m^3/s") +
+  ggtitle("Histogramm of massa water discharge in m³/s") +
   theme_minimal()
 plot(p_massa)
 ```
@@ -802,19 +804,41 @@ hq_table_massa <- data.frame(ReturnPeriod = return_periods_massa, HQ = HQ_massa)
 hq_table_massa
 ```
 
-### Conclusion
+### EVT conclusion
 
 Our EVT analysis for the Massa River does not predict any extreme events approaching the “Bemessungshochwasser” of the Gibidum Dam. This indicates that the dam was appropriately dimensioned at the time of its construction and is capable of withstanding future extreme water discharges.
 
-However, as expected, our results differ from the BAG report, which predicts events of up to 150 m^3/s (depending on the EVT method used) occurring approximately every 300 years. This difference is primarily due to the BAG analysis being based on daily maximum values, whereas our study uses daily mean values. Consequently, their approach is better suited for capturing the absolute extreme events. Nevertheless, even their estimated extremes remain well below the 450 m^3/s design discharge that the Gibidum Dam was engineered to withstand.
+However, as expected, our results differ from the BAG report, which predicts events of up to 150 m³/s (depending on the EVT method used) occurring approximately every 300 years. This difference is primarily due to the BAG analysis being based on daily maximum values, whereas our study uses daily mean values. Consequently, their approach is better suited for capturing the absolute extreme events. Nevertheless, even their estimated extremes remain well below the 450 m³/s design discharge that the Gibidum Dam was engineered to withstand.
 
 Based on these findings, we are confident that the extreme water discharges of the Massa River, as influenced by climate change and its effects on the Aletsch Glacier, do not pose a significant threat in terms of river flow volumes.
 
 What is not addressed in our analysis, however, is the impact of the glacier’s retreat and its associated counterpressure on the valley and surrounding rocks. This may destabilize the ground and trigger landslides, potentially affecting the structural integrity of the dam directly, or indirectly through debris avalanches. Events such as the glacier/rock collapse in Blatten in spring 2025 illustrate how these processes can lead to unpredictable natural disasters.
 
 
-### River Rhone
-#### First data analysis rhone
+# Conclusion
+
+# Outlook (Vani)
+
+
+# Disclaimer for AI
+
+
+# Appendix
+
+## Feature Explanation of the dataset
+
+### Glacier Data
+
+Winter/Summer/Annual mass balance (Bw/Bs/Ba) → millimeters water equivalent (mm w.e.), representing the amount of snow accumulated in winter/summer/annually converted to the equivalent depth of water. 
+The Equilibrium Line Altitude (ELA) -> the elevation on a glacier where annual accumulation equals annual ablation. (If temperatures rise or snowfall decreases, the ELA rises.)
+Minimum and maximum elevation of glacier → Determines vertical gradient and exposure to temperature changes.
+Accumulation Area Ratio -> Area of Accumulation Zone / Total Glacier Area. It is used as a climate/glacier health indicator. If the AAR is lower (e.g. 0.2), it means the glacier is losing mass and shrinking.
+
+## EVT river Rhone {#EVT_Rhone_Appendix}
+
+[Back to Chapter 'Extreme Value Theory (EVT)'](#EVT_Massa_Report)
+
+### First data analysis rhone
 
 <u>**EVT Rhone Data Preparation**</u>
 ```{r evt_rhone_preparation, echo=FALSE}
@@ -849,7 +873,7 @@ df_rhone_prep <- data.frame(
 #First insights of rhone data / creating ts
 
 #plotting rhone data / watervolume
-plot(ts_watervolume_rhone, main = "Rhone daily discharge volume in m^3/s 1980 - 2020")
+plot(ts_watervolume_rhone, main = "Rhone daily discharge volume in m³/s 1980 - 2020")
 ```
 
 <u>**EVT Rhone Histogram**</u>
@@ -857,11 +881,11 @@ plot(ts_watervolume_rhone, main = "Rhone daily discharge volume in m^3/s 1980 - 
 # histogram
 p_rhone <- ggplot(df_rhone_prep, aes(x=Watervolume)) + 
   geom_histogram() +
-  ggtitle("Histogramm of rhone water discharge in m^3/s")
+  ggtitle("Histogramm of rhone water discharge in m³/s")
 plot(p_rhone)
 ```
 
-#### Plotting lm-trend line
+### Plotting lm-trend line
 
 <u>**EVT Rhone Data Preparation**</u>
 ```{r EVT_rhone, include = TRUE, warning=FALSE, message=FALSE}
@@ -894,9 +918,7 @@ ggplot(df_rhone_prep, aes(x = Date, y = Watervolume)) +
 ```
 
 
-
-
-#### EVT Peaks over Threshold (POT)
+### EVT Peaks over Threshold (POT)
 
 <u>**EVT POT Rhone**</u>
 ```{r EVT_modeling_threshold_rhone, include = TRUE}
@@ -908,7 +930,7 @@ gev.diag(rhone_ex_fit) # -> Return Period is on a daily scale
 rhone_ex_fit$mle
 ```
 
-#### EVT Block Max Year 
+### EVT Block Max Year 
 
 <u>**EVT Block max year Rhone**</u>
 ```{r EVT_modeling_block_max_rhone, include = TRUE}
@@ -930,7 +952,7 @@ gev.diag(rhone_max_year_fit) # -> Return Period is on a yearly scale
 rhone_max_year_fit$mle
 ```
 
-#### EVT HQ Values
+### EVT HQ Values
 
 <u>**EVT HQ block max Rhone**</u>
 ```{r EVT_modeling_hq_rhone, include = TRUE}
@@ -956,27 +978,3 @@ HQ_rhone <- qgev(p, loc=loc_rhone, scale=scale_rhone, shape=shape_rhone)
 hq_table_rhone <- data.frame(ReturnPeriod = return_periods_rhone, HQ = HQ_rhone)
 hq_table_rhone
 ```
-
-### EVT conclusion
-
-
-
-# Conclusion
-
-# Outlook (Vani)
-
-
-# Disclaimer for AI
-
-
-# Appendix
-
-## Feature Explanation of the dataset {#Table_feature_exp}
-
-### Glacier Data
-
-Winter/Summer/Annual mass balance (Bw/Bs/Ba) → millimeters water equivalent (mm w.e.), representing the amount of snow accumulated in winter/summer/annually converted to the equivalent depth of water. 
-The Equilibrium Line Altitude (ELA) -> the elevation on a glacier where annual accumulation equals annual ablation. (If temperatures rise or snowfall decreases, the ELA rises.)
-Minimum and maximum elevation of glacier → Determines vertical gradient and exposure to temperature changes.
-Accumulation Area Ratio -> Area of Accumulation Zone / Total Glacier Area. It is used as a climate/glacier health indicator. If the AAR is lower (e.g. 0.2), it means the glacier is losing mass and shrinking.
-
