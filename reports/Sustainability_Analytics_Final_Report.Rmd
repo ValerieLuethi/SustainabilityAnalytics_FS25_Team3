@@ -48,23 +48,118 @@ library(evd)      # for calculating HQ values in EVT
 library(zoo)      # for function 'yearmon'
 ```
 
-# Introduction (Ramona)
+# Introduction
 
 <br><p style="font-size: 35px;"> Introduction </p><br>
 
 Hinweis für Ramona: Falls wir für die Einleitung oder Abstrakt keine Auflistung im Inhaltsverzeichnis haben möchten, könnten wir das mit **'p style="font-size: 35px;"> Introduction </p'** anstelle von **## Introduction** lösen.
 
+The United Nations declared the year 2025 as the “International Year of Glaciers` Preservation” to raise global awareness about the critical role of glaciers in the climate system and the hydrological cycle and the economic, social and environmental impacts of the impending changes [UN](https://www.un-glaciers.org/en). In alignment with this initiative, this report provides a sustainability analysis of the Aletsch Glacier, the largest glacier in the Alps. The focus lies on the Glaciers impact on the Massa river and the downstream communities in the Canton of Valais, particularly the town of Brig.
+The Aletsch Glacier`s meltwater feeds the Massa River, which joins the Rhone near Brig. While increased melting can temporarily increase flood risk, the long-term loss of glacier mass threatens to reduce water availability, impacting both the local population and hydropower generation.
+
+This report aims to analyze these risks by developing a forecasting system. This system links climate change indicators to the Aletsch Glacier's mass changes and subsequently to the waterlevel, watervolume and extreme flow events of the Massa and Rhone rivers. 
+The forecasting framework is intended to support:
+- Early warning systems
+- Infrastructure and land-use planning
+- Resilient water and energy management
+The goal is to provide local communities and stakeholders with the necessary information to prepare for future challenges in flood risk and water availability.
+
+## Research Question
+How might we analyze the impact of climate change on the river levels of Massa for the Canton Valais so that the people of Brig can better prepare themselves for future changes in flood risk and water availability?
+
+To answer this question, our analysis is divided into two components:
+- Climate-Glacier-River Model: We use an ARIMAX model to link climate variables (such as temperature and precipitation) to glacier melt and resulting changes in river volume. This will allow for forecasting of typical water flow conditions and seasonal availability.
+
+- Extreme Value Theory (EVT): EVT will be used to quantify the probability of extreme events, such as flooding, providing critical information for climate risk assessment and the development of preparedness strategies.
+
+## Alignment with UN Sustainable Development Goals [SDGs](https://www.un.org/sustainabledevelopment/sustainable-development-goals/)
+
+This project contributes to several of the UN`s SDGs, particularly:
+-	SDG 13: Climate Action
+Modeling glacier and hydrological changes to inform climate risk reduction and resilience planning.
+
+-	SDG 7: Affordable and Clean Energy
+Evaluating hydropower reliability under changing water availability for better seasonal energy planning.
+
+- SDG 12: Responsible Consumption and Production
+Promoting efficient water resource and risk-aware infrastructure management.
+
+- SDG 15: Life on Land 
+Assessing ecosystem and habitat impacts from altered river flow regimes to support regional conservation efforts.
+
+- SDG 6: Clean Water and Sanitation 
+Providing insights into long-term water availability and its management for human and ecological needs.
+
+## Engaging the stakeholders
+Effective stakeholder collaboration is critical to ensuring actionable and locally relevant outcomes. 
+We have identified three key stakeholder groups with varying levels of influence and interest.
+
+-	Residents of Brig: 
+Affected by flooding, water shortages, infrastructure resilience and overall quality of life.
+-	Hydropower operators (Massa River Dam): 
+Dependent on predictable inflows for energy production and meeting regulatory standards.
+-	Cantonal authorities (Canton of Valais): 
+Responsible for safety planning, data governance, and alignment with environmental policy and sustainability goals.
+
+We conducted a Power–Interest Mapping to better understand the roles, motivations, and potential contributions of key stakeholders. This analysis helps guide our engagement strategies, ensuring that each group is involved in a way that reflects both their influence over outcomes and their level of interest in the project's results.
+
+| Stakeholder | Role | Motivation | Contribution to Project | Benefits from Project |
+|-------------------|------------------|---------------|-------------------------|-------------------------|
+| **Residents of Brig**  | Land-use choices, emergency planning, public communication. | Flood safety, insurance costs, quality of life, tourism. | Local flood history, identification of critical sites (schools, homes), preferred warning channels. | Actionable risk information (timing, location), early-warning, guidance on adaptation measures. |
+| **Massa River Dam & Hydropower Operators** | Flow regulation, reservoir level management, water release rules, maintenance. | Safety, regulatory compliance, energy yield, reputational risk. | Historical inflow/outflow data, operational rules, details of spill events. | scenarios for inflow/outflow, spill/shortage probabilities, data for decision support. |
+| **Canton (Valais) Authorities** | Permits coordination, data governance, funding. | Regional safety, alignment with cantonal plans and SDGs. | Previous studies, regional hazard maps, legal standards. | Reproducible datasets, briefing materials for policymakers. |
+
+
+-	Dam Operators: High Power / High Interest -> Engage closely
+those managing the Massa River dam, are identified as having both high power and high interest. These operators play a critical role in water flow regulation and reservoir management, giving them significant influence over how the system responds to changing water availability. Moreover, their operational success is directly tied to reliable inflows, safety protocols, and regulatory compliance—all of which are affected by glacial melt and river dynamics. Because of this dual significance, it is essential to engage hydropower operators closely throughout the project, involving them in data sharing, scenario planning, and the development of risk management tools that align with both energy production and safety concerns.
+
+-	Canton Authorities: High Power / Medium-High Interest -> Collaborate & align
+Cantonal authorities in Valais, who oversee regional infrastructure, environmental planning, and public safety, also hold high power in terms of policy-making and resource allocation. However, their level of interest, while substantial, may be more medium-to-high, given their broader set of responsibilities across the region. These authorities are key partners for aligning our work with existing development plans and legal standards, and for ensuring that the project contributes meaningfully to regional sustainability goals. Therefore, the recommended engagement strategy with cantonal officials is one of active collaboration and strategic alignment, ensuring that their policy expertise and governance frameworks are fully integrated into the project outcomes.
+
+-	Residents: Medium Power / High Interest -> Empower through co-design
+the residents of Brig, although they may not possess the formal authority of institutions, exhibit high interest in the project due to their direct exposure to flood risk, water shortages, and changes to infrastructure resilience. Their power to influence high-level decision-making is moderate, but their lived experience, local knowledge, and community preferences are invaluable in designing practical and accepted solutions. For this reason, it is crucial to empower residents through participatory approaches, such as co-design workshops, transparent communication, and mechanisms for incorporating public feedback. Engaging them meaningfully helps build trust, improves the relevance of proposed measures, and ensures that risk communication strategies are well-targeted and effective.
+
+
+
+
+## System Dynamics: Causal Loop Modelling
+
+To understand the complex and interconnected nature between climate, glaciers, hydrology and society, we created a causal loop diagram in Loopy. It models how glacier fed river dynamics affect flood risk and community resilience in Brig.
+
+LOOPY LINK??
+
+The diagram visualizes the relationships between our key variables: Climate Change, Glacier Melting, Water Level, Potential Danger, People of Brig and Investment in Region.
+Within the model, two critical types of variables are identified: stocks and flows. Stocks refer to the quantities that accumulate or deplete over time. In this context, they include the mass of the Aletsch Glacier, as well as the population exposed to flood risk in Brig.
+Flows, on the other hand, represent the rates at which changes occur in these stocks. For the glacier system, the most important flows are the melt rate of the glacier, the volume of river discharge, and the amount of incoming precipitation. These influence both the water level in the river and the rate at which the glacier's mass is lost.
+Driving the entire system are exogenous variables—factors that originate outside the system but have a powerful influence on it. Chief among these is climate change, represented through observable trends in temperature increases and changes in precipitation patterns. These climate drivers accelerate glacier melting, alter the seasonal distribution of water flow, and intensify the risk of extreme events such as flooding.
+
+
+The key feedback loops are:
+Climate-Melt-Danger: Climate change (rising temperature) positively influences glacier melting, which in turn increases the water level. This directly leads to a higher potential danger (flooding).
+
+Risk-induced Migration: Increased potential danger from flooding can negatively impact the population of Brig, potentially leading to out-migration, which in turn reduces the number of people exposed to the danger.
+
+Adaptation: An increase in potential danger can spur investments in protective measures (e.g. flood defenses), which then reduces the potential danger.
+
+Diminishing Glacier Source: Glacier melting is a key positive driver for water levels, but this process also reduces the glacier's total mass (a stock variable). ultimately leading to diminished meltwater contributions and water scarcity over time.
 
 # Datapreparation/Cleaning
 
+This analysis combines several complementary datasets to investigate hydrological dynamics in the Aletsch/Brig region.
+For the analysis we used the following datasets:
+Glacier Mass Balance - Seasonal and annual mass balance measurements of the Grosser Aletschgletscher
+Jungfraujoch Temperature - Monthly air temperature from the high-alpone Jungfraujoch station
+Brig Rainfall - Monthly precipitation totals from Brig weather station
+Massa River - Daily hydro-meteorological observations of Massa River
+Rhone River - Daily hydro-meteorological observations of Massa River 
 The [feature explanation](#Table_feature_exp) can be found in the appendix.
 
 <u>**Loading Data**</u>
 ```{r loading_data, include= TRUE, echo=TRUE}
 # Reading in data
 # for massa, rhone: why are the processed csv loaded instead of the raw data?
-raw_massa <- read.csv('../data/processed/massa_cleaned.csv', header=TRUE, sep=',', na.strings='-')
-raw_rhone <- read.csv('../data/processed/rhone_cleaned.csv', header=TRUE, sep=',', na.strings='-')
+raw_massa <- read.csv('../data/raw/massa_CAMELS_CH_obs_based_2161.csv', header=TRUE, sep=',', na.strings='-')
+raw_rhone <- read.csv('../data/raw/brig_CAMELS_CH_obs_based_2346.csv', header=TRUE, sep=',', na.strings='-')
 raw_glacier <- read.csv('../data/raw/massbalance_observation.csv', header=TRUE, sep=';', na.strings='-')
 raw_jungfraujoch <- read.csv("../data/raw/weather_monthly_jungfraujoch.csv", header=TRUE, sep=';', na.strings='-')
 raw_brigrain <- read.csv('../data/raw/weather_rain_monthly_brig.csv', header=TRUE, sep=';', na.strings='-')
@@ -167,7 +262,143 @@ df_glacier_monthly <- bind_rows(lapply(1:nrow(df_glacier), function(i){
 head(df_glacier_monthly,20)
 ```
 
-## River Massa (Ramona)
+## Massa River
+The data is freely available from the official CAMELS-CH publication [CAMELS-CH](https://essd.copernicus.org/articles/15/5755/2023/essd-15-5755-2023-assets.html) including 40 years (1981 - 2020) of daily hydro-meteorological observations.
+The raw Massa dataset included daily measurements between January 1, 1981 and December 1, 2020. All column names were renamed for clarity and the date column was converted to a proper date format.
+Checking for missing values revealed that the variable snow_water_equiv_mm had NAs. We decided to impute them incase we would need this variable in further analysis. The missing values were imputed with zero (0). An additional column imputed_snow_water_equiv was added as a binary flag (1 = imputed, 0 = original) to track these imputations for transparency and possible future filtering.
+
+```{r massa_river_data_preparation, include = TRUE}
+# rename columns 
+df_massa <- raw_massa %>%
+  # rename(new_name = old_name)
+  rename(
+    date_yyyymmdd = date,
+    discharge_vol_m3s = discharge_vol.m3.s.,        # m3/s
+    discharge_specific_mm = discharge_spec.mm.d.,   # mm/d  
+    waterlevel_m = waterlevel.m.,                   # m above sea level
+    precipitation_mm = precipitation.mm.d.,         # mm/d
+    temp_min = temperature_min.degC.,               # Celsius
+    temp_mean = temperature_mean.degC.,             # Celsius
+    temp_max = temperature_max.degC.,               # Celsius
+    rel_sunshine_duration = rel_sun_dur...,         # % 
+    snow_water_equiv_mm = swe.mm.                   # mm (snow water equivalent)
+  ) %>%
+  
+  # convert date column
+  mutate(
+    date_yyyymmdd = as.Date(date_yyyymmdd, format = "%Y-%m-%d")
+  )
+
+# check for  Missing Values (NaN Treatment)
+df_massa %>%
+  summarise_all(~sum(is.na(.))) 
+
+## only snow_water_equiv_mm has NAs
+#summary(df_massa$snow_water_equiv_mm)
+
+## find first non-missing value
+#first_valid <- which(!is.na(df_massa$snow_water_equiv_mm))[1]
+#df_massa$date_yyyymmdd[first_valid]
+
+## count missing vs available
+#sum(is.na(df_massa$snow_water_equiv_mm))
+#sum(!is.na(df_massa$snow_water_equiv_mm))
+
+# impute the NaN`s with 0 and add new column for imputed Yes=1, No=0 to flag them
+df_massa$imputed_snow_water_equiv <- ifelse(is.na(df_massa$snow_water_equiv_mm), 1, 0)
+df_massa$imputed_snow_water_equiv
+#tail(df_massa$imputed_snow_water_equiv)
+#colnames(df_massa)
+df_massa$snow_water_equiv_mm[is.na(df_massa$snow_water_equiv_mm)] <- 0
+# check that there are no missing values left
+df_massa %>%
+  summarise_all(~sum(is.na(.)))
+```
+To be able to do analysis with complementary monthly datasets (Jungfraujoch temperature and Brig rainfall), the daily Massa river observations were aggregated to monthly resolution. Water level ("waterlevel_m"), discharge ("discharge_vol_m3s"), and temperature ("temp_mean") were calculated as monthly averages, while precipitation ("precipitation_mm") was summed to represent total monthly water input. 
+The resulting monthly dataset covers the period from January 1981 to December 2020, with 480 monthly observations. As our initial analysis focuses on water level dynamics, a time series object was constructed from the monthly `waterlevel_m` values.
+
+```{r monthly_massa_river_data_preparation, include = TRUE}
+# create monthly df
+df_monthly <- df_massa %>%
+  mutate(
+    year = year(date_yyyymmdd),
+    month = month(date_yyyymmdd)
+  ) %>%
+  group_by(year, month) %>%
+  summarise(
+    date_yyyymmdd = first(date_yyyymmdd),
+    waterlevel_m = mean(waterlevel_m),
+    discharge_vol_m3s = mean(discharge_vol_m3s),
+    precipitation_mm = sum(precipitation_mm),
+    temp_mean = mean(temp_mean),
+    .groups = "drop"
+  )
+
+#cat("Monthly data created:", nrow(df_monthly), "observations\n") 
+#cat("Date range:", as.character(min(df_monthly$date_yyyymmdd)), "to", as.character(max(df_monthly$date_yyyymmdd)), "\n")
+
+# create ts object for warerlevel
+waterlevel_ts <- ts(df_monthly$waterlevel_m, 
+                    start = c(year(min(df_monthly$date_yyyymmdd)),
+                              month(min(df_monthly$date_yyyymmdd))),
+                    frequency = 12)
+
+```
+
+### Rhone River
+A parallel data cleaning and preparation pipeline was implemented for the Rhone River dataset, which shares the same source and structure. The raw Rhone dataset included daily measurements between January 1, 1981 and December 31, 2020.
+
+```{r rhone_river_data_preparation, include = FALSE}
+# rename columns 
+df_rhone <- raw_rhone %>%
+  # rename(new_name = old_name)
+  rename(
+    date_yyyymmdd = date,
+    discharge_vol_m3s = discharge_vol.m3.s.,        # m3/s
+    discharge_specific_mm = discharge_spec.mm.d.,   # mm/d  
+    waterlevel_m = waterlevel.m.,                   # m above sea level
+    precipitation_mm = precipitation.mm.d.,         # mm/d
+    temp_min = temperature_min.degC.,               # Celsius
+    temp_mean = temperature_mean.degC.,             # Celsius
+    temp_max = temperature_max.degC.,               # Celsius
+    rel_sunshine_duration = rel_sun_dur...,         # % 
+    snow_water_equiv_mm = swe.mm.                   # mm (snow water equivalent)
+  ) %>%
+  
+  # convert date column
+  mutate(
+    date_yyyymmdd = as.Date(date_yyyymmdd, format = "%Y-%m-%d")
+  )
+
+## check data types (date_yyyymmdd as date, all others as numeric)
+#str(df_rhone)
+
+# check for  Missing Values (NaN Treatment)
+df_rhone %>%
+  summarise_all(~sum(is.na(.))) 
+
+## only snow_water_equiv_mm has NAs (6453)
+#summary(df_rhone$snow_water_equiv_mm)
+
+## find first non-missing value: 1998-09-02
+#first_valid <- which(!is.na(df_rhone$snow_water_equiv_mm))[1]
+#df_rhone$date_yyyymmdd[first_valid]
+
+## count missing vs available
+#sum(is.na(df_rhone$snow_water_equiv_mm))
+#sum(!is.na(df_rhone$snow_water_equiv_mm))
+
+# impute the NaN`s with 0 and add new column for imputed Yes=1, No=0 to flag them
+df_rhone$imputed_snow_water_equiv <- ifelse(is.na(df_rhone$snow_water_equiv_mm), 1, 0)
+df_rhone$imputed_snow_water_equiv
+#tail(df_rhone$imputed_snow_water_equiv)
+#colnames(df_rhone)
+df_rhone$snow_water_equiv_mm[is.na(df_rhone$snow_water_equiv_mm)] <- 0
+
+df_rhone %>%
+  summarise_all(~sum(is.na(.)))
+```
+
 
 ## Brig Rain
 
@@ -210,11 +441,13 @@ A look at the summary statistics reveals that monthly mean temperatures at Jungf
 The plot of monthly mean temperatures shows clear seasonal oscillations, with cold winters and milder summers. There is also a slight upward trend, suggesting that the mean temperatures might increase gradually over the years. This could hint at the climate getting warmer.
 
 # Stationarity
+The time series were checked for stationarity by inspecting their Autocorrelation Functions (ACF) and Partial Autocorrelation Functions (PACF). To further investigate the structure of the data, we applied Seasonal-Trend decomposition using Loess (STL). STL separates the time series into trend, seasonal and remainder components, which is useful to identify and remove seasonality and trends before time series modelling. Different variations of the s.window parameter were tested to control the smoothness of the seasonal component. Additionaly the t.window parameter was used to control the smoothing of the trend component.
+To formally assess the stationarity of the time series, we applied the Augmented Dickey-Fuller (ADF) test to the original series as well as to the remainder components obtained from multiple STL decompositions using varying seasonal (s.window) and trend (t.window) smoothing parameters. The ADF test consistently rejected the null hypothesis, indicating that both the raw series and the STL residuals can be considered stationary. Given the uniformly significant results, we relied primarily on visual inspection of the ACF and PACF plots of the remainder components to confirm the effective removal of seasonal and trend components and to ensure minimal autocorrelation in the residual structure.
 
 ## Temperature Jungfraujoch
 
 ### Stationarity
-We further check the stationarity of the time series by inspecting the ACF and PACF. The ACF shows a strong seasonal pattern reflecting the annual temperature cycle. The PACF indicates that monthly mean temperatures are influenced by the previous month (lag 1). Then shows a negative connection for the next few months (lags 2 to 6) and a positive connection again (lags 8 to 13). This is likely due to temperature changes following a seasonal pattern, where each month corresponds to a specific period (e.g. season). 
+The ACF shows a strong seasonal pattern reflecting the annual temperature cycle. The PACF indicates that monthly mean temperatures are influenced by the previous month (lag 1). Then shows a negative connection for the next few months (lags 2 to 6) and a positive connection again (lags 8 to 13). This is likely due to temperature changes following a seasonal pattern, where each month corresponds to a specific period (e.g. season). 
 <u>**Jungfraujoch ACF and PACF**</u>
 ```{r jungfraujoch_temperature_acf_pacf, include = TRUE}
 # create time series object
@@ -229,7 +462,8 @@ ts_jungfraujoch <- ts(df_jungfraujoch_reduced$temp_mean_C,
 acf(ts_jungfraujoch) # acf indicates seasonality
 pacf(ts_jungfraujoch) # damped sinusoid
 ```
-To further analyze the time series, we applied Seasonal-Trend decomposition using Loess (STL). STL separates the time series into trend, seasonal and remainder components, which is useful to identify and remove sesanality and trends before time series modelling. Different variations of the s.window parameter were tested to control the smoothness of the seasonal component. Additionaly the t.window parameter was used to control the smoothing of the trend component. We observed that larger seasonal windows slightly reduced autocorrelations in the remainder, whereas the PACF improved notably when using a large trend window. An s.window of 37 and a t.window of 121 showed the most satisfying result.
+
+We observed that larger seasonal windows slightly reduced autocorrelations in the remainder, whereas the PACF improved notably when using a large trend window. An s.window of 37 and a t.window of 121 showed the most satisfying result.
 The Augmented-Dickey-Fuller test was used to formally check stationarity of the remainder. The significant result (p < .01) indicates stationarity.
 <u>**Jungfraujoch Temperature STL Decomposition**</u>
 ```{r jungfraujoch_temperature_stl_decomposition, include = TRUE}
@@ -270,6 +504,7 @@ pacf(remainder_37_121) # no change compared to without t.window
 # augmented dickey fuller test to check stationarity formally
 adf.test(remainder_37_121)
 ```
+
 For further modelling a data frame containing the components of the decomposed time series as well as the observed data was created and saved.
 <u>**Jungfraujoch create cleaned data frame**</u>
 ```{r jungfraujoch_temperature_clean_df, include = TRUE}
@@ -326,21 +561,125 @@ head(rain_decomp_df)  # for checking
 ```
 
 
+## Massa River
 
+### Waterlevel
 
-## River Massa
-### Waterlevel (Ramona)
+The time series plot reveals a strong seasonal pattern, with peak waterlevels occurring annually. The observed values range approximately between 1440 m and 1449 m above sea level, reflecting typical seasonal fluctuations driven by snowmelt and precipitation. The ACF shows significant spikes at lag 12 and its multiples, confirming strong annual seasonality. The PACF shows a high spike at lag 1, indicating a strong influence of the previous month on the current month’s water level. 
+We first applied STL with a "periodic" seasonal window setting. This initial decomposition revealed a strong and stable seasonal component recurring annually, as well as a trend component (particularly visibile after the year 2000). However, the ACF and PACF of the remainder component still exhibited notable autocorrelations.
 
+To improve the decomposition, we tested various parameter settings for both the seasonal window (s.window) and the trend window (t.window). Specifically, we compared s.window values of 13, 35, and "periodic" to adjust the smoothness of the seasonal component, while varying t.window values (e.g., 121) to control the smoothing of the trend.
+The optimal decomposition was achieved using s.window = 35 and t.window = 121, which resulted in the most satisfactory balance in the ACF and PACF of the remainder component.
 
-## River Rhone
-### Waterlevel (Ramona)
+```{r massa_river_waterlevel_stationarity, include=TRUE}
+# create ts object for waterlevel
+waterlevel_ts <- ts(df_monthly$waterlevel_m, 
+                    start = c(year(min(df_monthly$date_yyyymmdd)),
+                              month(min(df_monthly$date_yyyymmdd))),
+                    frequency = 12)
+
+plot(waterlevel_ts, main = "Monthly Waterlevel timeseries of Massa River", 
+     ylab = "Waterlevel (m above sea level)", xlab = "Time")
+
+par(mfrow = c(1, 2))
+acf(waterlevel_ts)
+pacf(waterlevel_ts)
+
+adf.test(waterlevel_ts) #p-value 0.01 (<0.05) so according to ADF stationary
+
+# first STL decomposition
+stl_decomp <- stl(waterlevel_ts, s.window = "periodic")
+plot(stl_decomp)
+
+remainder_waterlevel <- stl_decomp$time.series[,"remainder"]
+adf.test(remainder_waterlevel) # p-value 0.01
+par(mfrow = c(1, 2))
+acf(remainder_waterlevel, main = "ACF - STL Remainder")
+pacf(remainder_waterlevel, main = "PACF - STL Remainder")
+
+### TESTING s.window and t.window
+#s.window=13, t.window=default
+stl_1 <- stl(waterlevel_ts, s.window = 13)
+plot(stl_1)
+
+remainder_stl1 <- stl_1$time.series[,"remainder"]
+adf.test(remainder_stl1) # p-value 0.01
+acf(remainder_stl1, main = "ACF - STL Remainder")
+pacf(remainder_stl1, main = "PACF - STL Remainder")
+par(mfrow = c(1, 1))
+
+#s.window=13, t.window=121
+stl_2 <- stl(waterlevel_ts, s.window = 13, t.window = 121)
+plot(stl_2)
+
+remainder_stl2 <- stl_2$time.series[,"remainder"]
+adf.test(remainder_stl2) # p-value 0.01
+acf(remainder_stl2, main = "ACF - STL Remainder")
+pacf(remainder_stl2, main = "PACF - STL Remainder")
+par(mfrow = c(1, 1))
+
+#s.window="periodic", t.window=121
+stl_3 <- stl(waterlevel_ts, s.window = "periodic", t.window = 121)
+plot(stl_3)
+
+remainder_stl3 <- stl_3$time.series[,"remainder"]
+adf.test(remainder_stl3) # p-value 0.01
+acf(remainder_stl3, main = "ACF - STL Remainder")
+pacf(remainder_stl3, main = "PACF - STL Remainder")
+par(mfrow = c(1, 1))
+
+#s.window="periodic", t.window=121
+stl_4 <- stl(waterlevel_ts, s.window = 35)
+plot(stl_4)
+
+remainder_stl4 <- stl_4$time.series[,"remainder"]
+adf.test(remainder_stl4) # p-value 0.01
+acf(remainder_stl4, main = "ACF - STL Remainder")
+pacf(remainder_stl4, main = "PACF - STL Remainder")
+par(mfrow = c(1, 1))
+
+#s.window=35, t.window=121
+stl_5 <- stl(waterlevel_ts, s.window = 35, t.window=121)
+plot(stl_5)
+
+remainder_stl5 <- stl_5$time.series[,"remainder"]
+adf.test(remainder_stl5) # p-value 0.01
+acf(remainder_stl5, main = "ACF - STL Remainder")
+pacf(remainder_stl5, main = "PACF - STL Remainder")
+par(mfrow = c(1, 1))
+```
+For further modelling a data frame containing the decomposed time series components alongside the original observations was created and saved. This structured dataset separates deterministic components (trend + seasonal) from stochastic variations (remainder).
+
+```{r stl_decomp_waterlevel, include=TRUE}
+## take decomp with s.window=35, t.window=121 as final decomp and create df
+stl_result <- stl(waterlevel_ts, s.window = 35, t.window=121)
+trend_comp <- as.numeric(stl_result$time.series[,"trend"])
+seasonal_comp <- as.numeric(stl_result$time.series[,"seasonal"])
+remainder_comp <- as.numeric(stl_result$time.series[,"remainder"])
+
+# Create the det_stoch dataframe
+det_stoch <- data.frame(
+  year_month = format(df_monthly$date_yyyymmdd, "%b %Y"),
+  waterlevel_m = df_monthly$waterlevel_m,
+  trend = trend_comp,
+  seasonal = seasonal_comp,
+  deterministic = trend_comp + seasonal_comp,
+  stochastic = remainder_comp
+)
+
+## save det_stoch df as RDS and CSV
+# saveRDS(det_stoch, "data/processed/waterlevel_det_stoch.rds")
+# write.csv(det_stoch, "data/processed/waterlevel_det_stoch.csv", row.names = FALSE)
+                
+```
+
 
 ### Watervolume (Alois)
 
 <u>**watervolume Data Preparation**</u>
 ```{r watervolume_massa_preparation, echo=FALSE}
 # Read data
-df_massa <- raw_massa
+#df_massa <- raw_massa
 
 ## Time Series Massa River - daily data
 freq_daily <- 365.2422
@@ -440,7 +779,7 @@ head(massa_monthly_mean_stl)  # for checking
 
 
 # Merge Data
-For convenience for further modelling we merged the preprocessed datasets jungfraujoch_temperature, glacier_mass_balance, mass_waterlevel and brig_rain by the date column. Due to different start and end dates we chose to keep the overlapping time period (01/01/1981 to 01/12/2020) in order to get a complete dataset.
+For convenience for further modelling we merged the preprocessed datasets jungfraujoch_temperature, glacier_mass_balance, massa_waterlevel and brig_rain by the date column. Due to different start and end dates we chose to keep the overlapping time period (01/01/1981 to 01/12/2020) in order to get a complete dataset.
 
 <u>**Merge data*</u>
 ```{r merge_data, include = TRUE}
@@ -844,6 +1183,19 @@ The Equilibrium Line Altitude (ELA) -> the elevation on a glacier where annual a
 Minimum and maximum elevation of glacier → Determines vertical gradient and exposure to temperature changes.
 Accumulation Area Ratio -> Area of Accumulation Zone / Total Glacier Area. It is used as a climate/glacier health indicator. If the AAR is lower (e.g. 0.2), it means the glacier is losing mass and shrinking.
 
+### Massa and River Rhone
+
+- waterlevel_m: observed daily water head above sea level in meters
+- discharge_vol_m3s: observed catchment discharge m3/s
+- discharge_specific_mm: observed catchment-specific discharge (converted to millimetres per day using catchment areas)
+- precipitation_mm: observed daily summed precipitation in mm/d
+- temp_min: observed daily minimum temperature in Celsius
+- temp_mean: observed daily averaged temperature in Celsius
+- temp_max: observed daily maximum temperature in Celsius
+- rel_sunshine-duration: observed daily averaged relative sunshine (solar irradiance ≥ 200 W m−2) duration in %
+- snow_water_equiv_mm: observed daily averaged snow water equivalent in mm (=it is the height of water that would result if you melted the snow down to its liquid state)
+Meaning of catchment = a land area, bounded by natural high points like hills or mountains, where all water, including rainfall and snowmelt, collects and drains into a single common outlet, such as a river, lake, or the ocean.
+
 ## EVT river Rhone {#EVT_Rhone_Appendix}
 
 [Back to Chapter 'Extreme Value Theory (EVT)'](#EVT_Massa_Report)
@@ -853,7 +1205,7 @@ Accumulation Area Ratio -> Area of Accumulation Zone / Total Glacier Area. It is
 <u>**EVT Rhone Data Preparation**</u>
 ```{r evt_rhone_preparation, echo=FALSE}
 # Read data
-df_rhone <- raw_rhone
+#df_rhone <- raw_rhone
 
 ## Time Series Rhone River - daily data
 freq_daily <- 365.2422
