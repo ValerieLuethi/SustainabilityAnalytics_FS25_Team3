@@ -437,7 +437,7 @@ df_massa_prep <- data.frame(
 A parallel data cleaning and preparation pipeline was implemented for the Rhone River dataset, which shares the same source and structure. The raw Rhone dataset included daily measurements between January 1, 1981 and December 31, 2020.
 
 <u>**data preparation for river rhone**</u>
-```{r rhone_river_data_preparation, include = FALSE}
+```{r rhone_river_data_preparation, include = TRUE}
 # rename columns 
 df_rhone <- raw_rhone %>%
   # rename(new_name = old_name)
@@ -479,7 +479,7 @@ df_rhone %>%
 
 # impute the NaN`s with 0 and add new column for imputed Yes=1, No=0 to flag them
 df_rhone$imputed_snow_water_equiv <- ifelse(is.na(df_rhone$snow_water_equiv_mm), 1, 0)
-df_rhone$imputed_snow_water_equiv
+#df_rhone$imputed_snow_water_equiv
 #tail(df_rhone$imputed_snow_water_equiv)
 #colnames(df_rhone)
 df_rhone$snow_water_equiv_mm[is.na(df_rhone$snow_water_equiv_mm)] <- 0
