@@ -52,22 +52,27 @@ library(zoo)      # for function 'yearmon'
 
 <br><p style="font-size: 35px;"> Introduction </p><br>
 
-Hinweis für Ramona: Falls wir für die Einleitung oder Abstrakt keine Auflistung im Inhaltsverzeichnis haben möchten, könnten wir das mit **'p style="font-size: 35px;"> Introduction </p'** anstelle von **## Introduction** lösen.
-
-The United Nations declared the year 2025 as the “International Year of Glaciers` Preservation” to raise global awareness about the critical role of glaciers in the climate system and the hydrological cycle and the economic, social and environmental impacts of the impending changes [UN](https://www.un-glaciers.org/en). In alignment with this initiative, this report provides a sustainability analysis of the Aletsch Glacier, the largest glacier in the Alps. The focus lies on the Glaciers impact on the Massa river and the downstream communities in the Canton of Valais, particularly the town of Brig.
+The United Nations declared the year 2025 as the “International Year of Glaciers Preservation” to raise global awareness about the critical role of glaciers in the climate system and the hydrological cycle and the economic, social and environmental impacts of the impending changes [UN](https://www.un-glaciers.org/en). In alignment with this initiative, this report provides a sustainability analysis of the Aletsch Glacier, the largest glacier in the Alps. The focus lies on the Glaciers impact on the Massa river and the downstream communities in the Canton of Valais, particularly the town of Brig.
 The Aletsch Glacier`s meltwater feeds the Massa River, which joins the Rhone near Brig. While increased melting can temporarily increase flood risk, the long-term loss of glacier mass threatens to reduce water availability, impacting both the local population and hydropower generation.
 
 This report aims to analyze these risks by developing a forecasting system. This system links climate change indicators to the Aletsch Glacier's mass changes and subsequently to the waterlevel, watervolume and extreme flow events of the Massa and Rhone rivers. 
+
 The forecasting framework is intended to support:
+
 - Early warning systems
+
 - Infrastructure and land-use planning
+
 - Resilient water and energy management
+
 The goal is to provide local communities and stakeholders with the necessary information to prepare for future challenges in flood risk and water availability.
 
 ## Research Question
+
 How might we analyze the impact of climate change on the river levels of Massa for the Canton Valais so that the people of Brig can better prepare themselves for future changes in flood risk and water availability?
 
 To answer this question, our analysis is divided into two components:
+
 - Climate-Glacier-River Model: We use an ARIMAX model to link climate variables (such as temperature and precipitation) to glacier melt and resulting changes in river volume. This will allow for forecasting of typical water flow conditions and seasonal availability.
 
 - Extreme Value Theory (EVT): EVT will be used to quantify the probability of extreme events, such as flooding, providing critical information for climate risk assessment and the development of preparedness strategies.
@@ -75,6 +80,7 @@ To answer this question, our analysis is divided into two components:
 ## Alignment with UN Sustainable Development Goals [SDGs](https://www.un.org/sustainabledevelopment/sustainable-development-goals/)
 
 This project contributes to several of the UN`s SDGs, particularly:
+
 -	SDG 13: Climate Action
 Modeling glacier and hydrological changes to inform climate risk reduction and resilience planning.
 
@@ -119,14 +125,16 @@ Cantonal authorities in Valais, who oversee regional infrastructure, environment
 -	Residents: Medium Power / High Interest -> Empower through co-design
 the residents of Brig, although they may not possess the formal authority of institutions, exhibit high interest in the project due to their direct exposure to flood risk, water shortages, and changes to infrastructure resilience. Their power to influence high-level decision-making is moderate, but their lived experience, local knowledge, and community preferences are invaluable in designing practical and accepted solutions. For this reason, it is crucial to empower residents through participatory approaches, such as co-design workshops, transparent communication, and mechanisms for incorporating public feedback. Engaging them meaningfully helps build trust, improves the relevance of proposed measures, and ensures that risk communication strategies are well-targeted and effective.
 
-
-
-
 ## System Dynamics: Causal Loop Modelling
 
 To understand the complex and interconnected nature between climate, glaciers, hydrology and society, we created a causal loop diagram in Loopy. It models how glacier fed river dynamics affect flood risk and community resilience in Brig.
 
-LOOPY LINK??
+<u>**Loopy_Model**</u>
+```{r loopy_model, include = TRUE, warning=FALSE, message=FALSE, out.width="100%"}
+knitr::include_graphics('../data/raw/Loopy_Model.png')
+```
+
+[Link to Loopy Model](https://ncase.me/loopy/v1.1/?data=[[[4,977,522,0.33,%22Climate%2520Change%22,0],[5,1100,795,0.5,%22Water%2520Level%22,4],[6,1111,364,0.5,%22Investment%2520in%2520Region%22,3],[7,874,722,0.5,%22Glacier%2520melting%22,1],[8,1203,565,1,%22People%2520of%2520Brig%22,5],[9,1410,627,0.33,%22Potential%2520Danger%22,2],[10,301,246,0,%22Zero%2520Button%22,4]],[[4,7,-30,1,0],[7,5,-31,1,0],[5,9,20,1,0],[9,8,13,-1,0],[4,6,43,1,0],[4,9,-45,1,0],[4,5,-47,1,0],[6,8,-25,1,0],[9,6,-10,1,0],[4,7,43,1,0],[4,7,-66,1,0],[9,8,-13,-1,0],[6,9,57,-1,0],[10,4,-36,-1,0],[10,4,100,-1,0],[6,5,-21,-1,0]],[],10%5D)
 
 The diagram visualizes the relationships between our key variables: Climate Change, Glacier Melting, Water Level, Potential Danger, People of Brig and Investment in Region.
 Within the model, two critical types of variables are identified: stocks and flows. Stocks refer to the quantities that accumulate or deplete over time. In this context, they include the mass of the Aletsch Glacier, as well as the population exposed to flood risk in Brig.
@@ -135,23 +143,30 @@ Driving the entire system are exogenous variables—factors that originate outsi
 
 
 The key feedback loops are:
-Climate-Melt-Danger: Climate change (rising temperature) positively influences glacier melting, which in turn increases the water level. This directly leads to a higher potential danger (flooding).
 
-Risk-induced Migration: Increased potential danger from flooding can negatively impact the population of Brig, potentially leading to out-migration, which in turn reduces the number of people exposed to the danger.
+- Climate-Melt-Danger: Climate change (rising temperature) positively influences glacier melting, which in turn increases the water level. This directly leads to a higher potential danger (flooding).
 
-Adaptation: An increase in potential danger can spur investments in protective measures (e.g. flood defenses), which then reduces the potential danger.
+- Risk-induced Migration: Increased potential danger from flooding can negatively impact the population of Brig, potentially leading to out-migration, which in turn reduces the number of people exposed to the danger.
 
-Diminishing Glacier Source: Glacier melting is a key positive driver for water levels, but this process also reduces the glacier's total mass (a stock variable). ultimately leading to diminished meltwater contributions and water scarcity over time.
+- Adaptation: An increase in potential danger can spur investments in protective measures (e.g. flood defenses), which then reduces the potential danger.
 
-# Datapreparation/Cleaning
+- Diminishing Glacier Source: Glacier melting is a key positive driver for water levels, but this process also reduces the glacier's total mass (a stock variable). ultimately leading to diminished meltwater contributions and water scarcity over time.
+
+# Datapreparation/Cleaning {#Data_preparation}
 
 This analysis combines several complementary datasets to investigate hydrological dynamics in the Aletsch/Brig region.
 For the analysis we used the following datasets:
-Glacier Mass Balance - Seasonal and annual mass balance measurements of the Grosser Aletschgletscher
-Jungfraujoch Temperature - Monthly air temperature from the high-alpone Jungfraujoch station
-Brig Rainfall - Monthly precipitation totals from Brig weather station
-Massa River - Daily hydro-meteorological observations of Massa River
-Rhone River - Daily hydro-meteorological observations of Massa River 
+
+- Glacier Mass Balance - Seasonal and annual mass balance measurements of the Grosser Aletschgletscher
+
+- Jungfraujoch Temperature - Monthly air temperature from the high-alpone Jungfraujoch station
+
+- Brig Rainfall - Monthly precipitation totals from Brig weather station
+
+- Massa River - Daily hydro-meteorological observations of Massa River
+
+- Rhone River - Daily hydro-meteorological observations of Massa River
+
 The [feature explanation](#Table_feature_exp) can be found in the appendix.
 
 <u>**Loading Data**</u>
@@ -170,6 +185,7 @@ raw_brigrain <- read.csv('../data/raw/weather_rain_monthly_brig.csv', header=TRU
 The homogeneous data series from the Jungfraujoch climate station is available on demand via [MeteoSchweiz OpenData](https://www.meteoswiss.admin.ch/services-and-publications/service/open-data.html). The station is located 3571 meters above sea level and located in the Aletsch area. We were interested in the measurement of the homogeneous monthly mean temperature covering the time span from 01/01/1933 to 01/07/2025. The temperature in Celsius was measured 2 meters above ground.
 
 The raw Jungfraujoch weather data set was prepared by first converting the reference_timestamp column into a proper datetime format. Then the data set was reduced to the columns necessary for our analysis (station_abbr, reference_timestamp, temp_mean_C). For clarity columns were renamed. A check for missing values, confirmed that there were none. Finally a time series object of the mean temperature values was created, specifying the start and end dates as well as the monthly frequency. 
+<u>**data preparation for jungfraujoch**</u>
 ```{r jungfraujoch_temperature_data_preparation, include = TRUE}
 # convert timestamp to datetime format
 df_jungfraujoch <- raw_jungfraujoch %>%
@@ -184,9 +200,11 @@ colSums(is.na(df_jungfraujoch_reduced)) # no NAs
 ```
 
 ## Glacier
-The data is sourced from Glacier Monitoring in Switzerland (GLAMOS). Direct measurements of glacier mass balance – the sum of snow accumulation and snow/ice melt – are carried out on selected glaciers in Switzerland, based on point observations, typically acquired in April/May and September. 
+The data is sourced from Glacier Monitoring in Switzerland (GLAMOS). Direct measurements of glacier mass balance – the sum of snow accumulation and snow/ice melt – are carried out on selected glaciers in Switzerland, based on point observations, typically acquired in April/May and September.
+
 For clarity, unnecessary columns were removed and the others were renamed. We were interested in information specifically regarding "Grosser Aletschgletscher" hence the dataset was filtered to just the relevant rows. We converted the date columns into proper datetime format. A check for missing values, confirmed that there were none.
 
+<u>**data preparation for glacier**</u>
 ```{r glacier_data_preparation, include = TRUE, echo = TRUE}
 ## remove unwanted columns
 df_glacier <- raw_glacier %>% 
@@ -208,6 +226,7 @@ colSums(is.na(df_glacier))
 
 In order to perform correlation analysis, the bi-annual mass balance values were extrapolated to monthly values using weighted averages derived from the Jungfraujoch temperature data. 
 
+<u>**data preparation (monhtly aggregation) for glacier**</u>
 ```{r glacier_monthly_data_preparation, include = TRUE, echo = TRUE}
 
 ## Function to allocate seasonal mass balance by fixed calendar seasons
@@ -264,9 +283,12 @@ head(df_glacier_monthly,20)
 
 ## Massa River
 The data is freely available from the official CAMELS-CH publication [CAMELS-CH](https://essd.copernicus.org/articles/15/5755/2023/essd-15-5755-2023-assets.html) including 40 years (1981 - 2020) of daily hydro-meteorological observations.
+
 The raw Massa dataset included daily measurements between January 1, 1981 and December 1, 2020. All column names were renamed for clarity and the date column was converted to a proper date format.
+
 Checking for missing values revealed that the variable snow_water_equiv_mm had NAs. We decided to impute them incase we would need this variable in further analysis. The missing values were imputed with zero (0). An additional column imputed_snow_water_equiv was added as a binary flag (1 = imputed, 0 = original) to track these imputations for transparency and possible future filtering.
 
+<u>**data preparation for river massa**</u>
 ```{r massa_river_data_preparation, include = TRUE}
 # rename columns 
 df_massa <- raw_massa %>%
@@ -306,7 +328,7 @@ df_massa %>%
 
 # impute the NaN`s with 0 and add new column for imputed Yes=1, No=0 to flag them
 df_massa$imputed_snow_water_equiv <- ifelse(is.na(df_massa$snow_water_equiv_mm), 1, 0)
-df_massa$imputed_snow_water_equiv
+#df_massa$imputed_snow_water_equiv
 #tail(df_massa$imputed_snow_water_equiv)
 #colnames(df_massa)
 df_massa$snow_water_equiv_mm[is.na(df_massa$snow_water_equiv_mm)] <- 0
@@ -314,9 +336,14 @@ df_massa$snow_water_equiv_mm[is.na(df_massa$snow_water_equiv_mm)] <- 0
 df_massa %>%
   summarise_all(~sum(is.na(.)))
 ```
+
+### Average monthly waterlevel
+
 To be able to do analysis with complementary monthly datasets (Jungfraujoch temperature and Brig rainfall), the daily Massa river observations were aggregated to monthly resolution. Water level ("waterlevel_m"), discharge ("discharge_vol_m3s"), and temperature ("temp_mean") were calculated as monthly averages, while precipitation ("precipitation_mm") was summed to represent total monthly water input. 
+
 The resulting monthly dataset covers the period from January 1981 to December 2020, with 480 monthly observations. As our initial analysis focuses on water level dynamics, a time series object was constructed from the monthly `waterlevel_m` values.
 
+<u>**Creating monthly average waterlevel for massa**</u>
 ```{r monthly_massa_river_data_preparation, include = TRUE}
 # create monthly df
 df_monthly <- df_massa %>%
@@ -345,10 +372,72 @@ waterlevel_ts <- ts(df_monthly$waterlevel_m,
 
 ```
 
+### Average monthly water discharge
+
+<u>**Creating monthly average discharge for massa**</u>
+```{r monthly_average_massa, include = TRUE}
+# calculation average monthly watervolume
+df_massa_monthly <- df_massa %>%
+  mutate(Year = year(date_yyyymmdd),
+         Month = month(date_yyyymmdd)) %>%
+  group_by(Year, Month) %>%
+  summarise(
+    discharge_monthly_mean = mean(discharge_vol_m3s, na.rm = TRUE),
+    .groups = "drop"
+  ) %>%
+  mutate(Date = as.Date(paste(Year, Month, "01", sep = "-")))
+
+
+## Time Series Massa River - monthly data
+ts_watervolume_monthly <- ts(df_massa_monthly$discharge_monthly_mean, 
+              start = c(year(min(df_massa_monthly$Date)),
+                        month(min(df_massa_monthly$Date))), 
+              frequency = 12)
+```
+
+### Daily water discharge
+
+<u>**massa daily water discharge data preparation**</u>
+```{r water_discharge_massa_preparation, include = TRUE}
+# Read data
+#df_massa <- raw_massa
+
+## Time Series Massa River - daily data
+freq_daily <- 365.2422
+
+ts_watervolume_massa <- ts(df_massa$discharge_vol_m3s, 
+              start = c(year(min(df_massa$date_yyyymmdd)),
+                        yday(min(df_massa$date_yyyymmdd))), 
+              frequency = freq_daily)
+
+
+# creating dataframe out of ts_watervolume_massa
+#----------------------------
+# defining start date
+massa_start_date <- as.Date("1981-01-01")
+# length of time series
+n <- length(ts_watervolume_massa)
+# creating date
+massa_dates <- seq.Date(from = massa_start_date, by = "day", length.out = n)
+
+df_massa_prep <- data.frame(
+  Date = massa_dates,
+  Watervolume = ts_watervolume_massa
+)
+
+#----------------------------------------------------------------------
+#----------------------------------------------------------------------
+#First insights of massa data / creating ts
+
+#plotting massa data / watervolume
+#plot(ts_watervolume_massa, main = "Massa daily discharge volume in m³/s 1980 - 2020")
+```
+
 ### Rhone River
 A parallel data cleaning and preparation pipeline was implemented for the Rhone River dataset, which shares the same source and structure. The raw Rhone dataset included daily measurements between January 1, 1981 and December 31, 2020.
 
-```{r rhone_river_data_preparation, include = FALSE}
+<u>**data preparation for river rhone**</u>
+```{r rhone_river_data_preparation, include = TRUE}
 # rename columns 
 df_rhone <- raw_rhone %>%
   # rename(new_name = old_name)
@@ -390,7 +479,7 @@ df_rhone %>%
 
 # impute the NaN`s with 0 and add new column for imputed Yes=1, No=0 to flag them
 df_rhone$imputed_snow_water_equiv <- ifelse(is.na(df_rhone$snow_water_equiv_mm), 1, 0)
-df_rhone$imputed_snow_water_equiv
+#df_rhone$imputed_snow_water_equiv
 #tail(df_rhone$imputed_snow_water_equiv)
 #colnames(df_rhone)
 df_rhone$snow_water_equiv_mm[is.na(df_rhone$snow_water_equiv_mm)] <- 0
@@ -402,6 +491,7 @@ df_rhone %>%
 
 ## Brig Rain
 
+<u>**data preparation for brig rain**</u>
 ```{r brig_rain_data_preparation, include = TRUE}
 raw_brigrain$Date <- as.Date(raw_brigrain$reference_timestamp, format = "%d.%m.%Y")
 
@@ -411,6 +501,11 @@ df_rain <- raw_brigrain %>% select(Date, rhs150m0)
 # defining starting year and month
 start_year_brig  <- year(min(df_rain$Date))
 start_month_brig <- month(min(df_rain$Date))
+
+# creating ts-object on a monthly basis
+rain_ts <- ts(df_rain$rhs150m0,
+              start = c(start_year_brig, start_month_brig),
+              frequency = 12)   # 12 month per year
 ```
 
 
@@ -418,6 +513,7 @@ start_month_brig <- month(min(df_rain$Date))
 # Exploratory Data Analysis (Vani)
 
 ### Temperature
+<u>**data exploration jungfraujoch**</u>
 ```{r jungfraujoch_temperature_data_exploration, include = TRUE}
 ts_temp <- ts(df_jungfraujoch_reduced$temp_mean_C,
               start = min(df_jungfraujoch_reduced$reference_timestamp),
@@ -442,12 +538,14 @@ The plot of monthly mean temperatures shows clear seasonal oscillations, with co
 
 # Stationarity
 The time series were checked for stationarity by inspecting their Autocorrelation Functions (ACF) and Partial Autocorrelation Functions (PACF). To further investigate the structure of the data, we applied Seasonal-Trend decomposition using Loess (STL). STL separates the time series into trend, seasonal and remainder components, which is useful to identify and remove seasonality and trends before time series modelling. Different variations of the s.window parameter were tested to control the smoothness of the seasonal component. Additionaly the t.window parameter was used to control the smoothing of the trend component.
+
 To formally assess the stationarity of the time series, we applied the Augmented Dickey-Fuller (ADF) test to the original series as well as to the remainder components obtained from multiple STL decompositions using varying seasonal (s.window) and trend (t.window) smoothing parameters. The ADF test consistently rejected the null hypothesis, indicating that both the raw series and the STL residuals can be considered stationary. Given the uniformly significant results, we relied primarily on visual inspection of the ACF and PACF plots of the remainder components to confirm the effective removal of seasonal and trend components and to ensure minimal autocorrelation in the residual structure.
 
 ## Temperature Jungfraujoch
 
 ### Stationarity
-The ACF shows a strong seasonal pattern reflecting the annual temperature cycle. The PACF indicates that monthly mean temperatures are influenced by the previous month (lag 1). Then shows a negative connection for the next few months (lags 2 to 6) and a positive connection again (lags 8 to 13). This is likely due to temperature changes following a seasonal pattern, where each month corresponds to a specific period (e.g. season). 
+The ACF shows a strong seasonal pattern reflecting the annual temperature cycle. The PACF indicates that monthly mean temperatures are influenced by the previous month (lag 1). Then shows a negative connection for the next few months (lags 2 to 6) and a positive connection again (lags 8 to 13). This is likely due to temperature changes following a seasonal pattern, where each month corresponds to a specific period (e.g. season).
+
 <u>**Jungfraujoch ACF and PACF**</u>
 ```{r jungfraujoch_temperature_acf_pacf, include = TRUE}
 # create time series object
@@ -465,6 +563,7 @@ pacf(ts_jungfraujoch) # damped sinusoid
 
 We observed that larger seasonal windows slightly reduced autocorrelations in the remainder, whereas the PACF improved notably when using a large trend window. An s.window of 37 and a t.window of 121 showed the most satisfying result.
 The Augmented-Dickey-Fuller test was used to formally check stationarity of the remainder. The significant result (p < .01) indicates stationarity.
+
 <u>**Jungfraujoch Temperature STL Decomposition**</u>
 ```{r jungfraujoch_temperature_stl_decomposition, include = TRUE}
 # decomposition with stl
@@ -532,10 +631,7 @@ saveRDS(df_jungfraujoch_processed, "../data/processed/jungfraujoch_temperature.r
 
 <u>**Brig rain stl**</u>
 ```{r brig_rain_stl, include = TRUE}
-# creating ts-object on a monthly basis
-rain_ts <- ts(df_rain$rhs150m0,
-              start = c(start_year_brig, start_month_brig),
-              frequency = 12)   # 12 month per year
+#stl_decompose of brig rain
 stl_1 <- stl(rain_ts, s.window =122, t.window=115)
 plot(stl_1)
 remainder_stl1 <- stl_1$time.series[,"remainder"]
@@ -571,6 +667,7 @@ We first applied STL with a "periodic" seasonal window setting. This initial dec
 To improve the decomposition, we tested various parameter settings for both the seasonal window (s.window) and the trend window (t.window). Specifically, we compared s.window values of 13, 35, and "periodic" to adjust the smoothness of the seasonal component, while varying t.window values (e.g., 121) to control the smoothing of the trend.
 The optimal decomposition was achieved using s.window = 35 and t.window = 121, which resulted in the most satisfactory balance in the ACF and PACF of the remainder component.
 
+<u>**massa river waterlevel stationarity**</u>
 ```{r massa_river_waterlevel_stationarity, include=TRUE}
 # create ts object for waterlevel
 waterlevel_ts <- ts(df_monthly$waterlevel_m, 
@@ -650,6 +747,7 @@ par(mfrow = c(1, 1))
 ```
 For further modelling a data frame containing the decomposed time series components alongside the original observations was created and saved. This structured dataset separates deterministic components (trend + seasonal) from stochastic variations (remainder).
 
+<u>**massa river stl_decompose**</u>
 ```{r stl_decomp_waterlevel, include=TRUE}
 ## take decomp with s.window=35, t.window=121 as final decomp and create df
 stl_result <- stl(waterlevel_ts, s.window = 35, t.window=121)
@@ -674,70 +772,16 @@ det_stoch <- data.frame(
 ```
 
 
-### Watervolume (Alois)
+### Water Discharge
 
-<u>**watervolume Data Preparation**</u>
-```{r watervolume_massa_preparation, echo=FALSE}
-# Read data
-#df_massa <- raw_massa
+#### Monthly average discharge massa timeseries
 
-## Time Series Massa River - daily data
-freq_daily <- 365.2422
-
-ts_watervolume_massa <- ts(df_massa$discharge_vol_m3s, 
-              start = c(year(min(df_massa$date_yyyymmdd)),
-                        yday(min(df_massa$date_yyyymmdd))), 
-              frequency = freq_daily)
-
-
-# creating dataframe out of ts_watervolume_massa
-#----------------------------
-# defining start date
-massa_start_date <- as.Date("1981-01-01")
-# length of time series
-n <- length(ts_watervolume_massa)
-# creating date
-massa_dates <- seq.Date(from = massa_start_date, by = "day", length.out = n)
-
-df_massa_prep <- data.frame(
-  Date = massa_dates,
-  Watervolume = ts_watervolume_massa
-)
-
-#----------------------------------------------------------------------
-#----------------------------------------------------------------------
-#First insights of massa data / creating ts
-
-#plotting massa data / watervolume
-#plot(ts_watervolume_massa, main = "Massa daily discharge volume in m³/s 1980 - 2020")
-```
-
-#### Monthly average Massa
-
-<u>**Creating monthly average values for massa**</u>
-```{r monthly_average_massa, include = TRUE}
-# calculation average monthly watervolume
-df_massa_monthly <- df_massa %>%
-  mutate(Year = year(date_yyyymmdd),
-         Month = month(date_yyyymmdd)) %>%
-  group_by(Year, Month) %>%
-  summarise(
-    discharge_monthly_mean = mean(discharge_vol_m3s, na.rm = TRUE),
-    .groups = "drop"
-  ) %>%
-  mutate(Date = as.Date(paste(Year, Month, "01", sep = "-")))
-  
-## Time Series Massa River - monthly data
-ts_watervolume_monthly <- ts(df_massa_monthly$discharge_monthly_mean, 
-              start = c(year(min(df_massa_monthly$Date)),
-                        month(min(df_massa_monthly$Date))), 
-              frequency = 12)
-
-
+<u>**plotting massa timeseries**</u>
+```{r monthly_average_massa_timeseries, include = TRUE}
 plot(ts_watervolume_monthly, main = "Massa mean discharge volume in m³/s 1980 - 2020")
 ```
 
-##### Stationarity with stl
+#### Stationarity with stl
 
 <u>**Stationarity with stl approach**</u>
 ```{r stl_monthly_massa, include = TRUE}
@@ -899,7 +943,8 @@ saveRDS(df_merged_overlap, "../data/processed/df_merged.rds")
 # Modelling
 
 ## Cross-Correlation Analysis
-To investigate potential linear relationships between the different time series, we use the cross-correlation function (ccf). For this we only need the stationary remainder components of each time series, since we want to avoid spurious correlations caused by trends and seasonal components. 
+To investigate potential linear relationships between the different time series, we use the cross-correlation function (ccf). For this we only need the stationary remainder components of each time series, since we want to avoid spurious correlations caused by trends and seasonal components.
+
 <u>**Create dataframe for Cross-Correlation Analysis**</u>
 ```{r dataframe_ccf, include = TRUE, warning=FALSE, message=FALSE}
 # select the columns relevant for cross-correlation analysis
@@ -948,6 +993,7 @@ legend("topright", legend=c("Temperature Jungfraujoch", "Glacier Mass Balance"),
 ccf(glacier_ts, temp_ts) # temperature leads
 ccf(temp_ts, glacier_ts) # glacier leads
 ```
+
 <u>**CCF Glacier Mass Balance & Massa Waterlevel**</u>
 ```{r ccf_glacier_mass_balance_waterlevel, include = TRUE, warning=FALSE, message=FALSE}
 glacier_scaled <- scale(glacier_ts)
@@ -958,7 +1004,9 @@ legend("topright", legend=c("Glacier Mass Balance", "Waterlevel Massa"), col=c("
 ccf(waterlevel_ts, glacier_ts) # glacier leads
 ccf(glacier_ts, waterlevel_ts) # waterlevel leads
 ```
+
 For the cross-correlation function between the Jungfraujoch temperature and the waterlevels Massa we can observe that temperature is leading with significant positive correlations at lags 0, 1 and 3. This is in line with our hypothesis that higher temperatures lead to increased snow melt, which then raises water levels with some delay. The negative correlations at lags 9 and 10 are likely due to the correlation of past high summer temperatures with low winter water levels. 
+
 <u>**CCF Jungfraujoch Temperature & Massa Waterlevel**</u>
 ```{r ccf_jungfraujoch_temperature_waterlevel, include = TRUE, warning=FALSE, message=FALSE}
 temp_scaled <- scale(temp_ts)
@@ -970,6 +1018,7 @@ ccf(waterlevel_ts, temp_ts) # temperature leads
 ccf(temp_ts, waterlevel_ts) # waterlevel leads
 ```
 The cross-correlation analysis between the monthly precipitations in Brig and the monthly waterlevels of Massa shows no significant relationship. Due to the use of monthly data it is possible that short-term effects were smoothed out. It might also be the case that precipitations in the valley in Brig does not reflect the hdydrological processes in the glacial upstream cachement of the river Massa. In further analysis snow and glacier melt should be taken into account as well. In addition, using the water discharge instead of water level could provide a more direct measure of the river's hydrological response.
+
 <u>**CCF Precipitation Brig & Massa Waterlevel**</u>
 ```{r ccf_precipitation_waterlevel, include = TRUE, warning=FALSE, message=FALSE}
 precip_scaled <- scale(precip_ts)
@@ -982,11 +1031,11 @@ ccf(precip_ts, waterlevel_ts) # waterlevel leads
 ```
 
 
-# Extreme Value Theory (EVT) {#EVT_Massa_Report}
+## Extreme Value Theory (EVT) {#EVT_Massa_Report}
 
 For the EVT analysis, we focus primarily on the Massa River, while the identical data preparation and visualization steps for the Rhone River are provided in the [appendix](#EVT_Rhone_Appendix). As the Rhone is not the core subject of this project, its results are not discussed in detail in the main body of the report.
 
-## River Massa
+### River Massa
 
 In this section, we take a closer look at the water discharge of the Massa River, measured in cubic meters per second (m³/s), as it provides a reliable indication of the river’s flow volume.
 
@@ -1016,7 +1065,7 @@ When cross-checking our data with the [Massa – Blatten bei Naters](https://www
 
 Due to the differences in data sources and measurement approaches, it is likely that our EVT results will differ from those presented in the BAG report. Nevertheless, the BAG report remains a valuable reference, allowing us to assess whether our findings exhibit similar patterns.
 
-### Histogram of water discharge of river Massa
+#### Histogram of water discharge of river Massa
 
 The histogram exhibits a pronounced right-skewed distribution, which at first glance might seem counterintuitive. This can be attributed to the hydrological regime of the Massa River, which is almost exclusively sustained by glacial meltwater and precipitation within the valley. During the winter season, precipitation is minimal and the glacier contributes no meltwater, leading to extended periods of zero discharge. As a result, the histogram displays a high frequency of zero values. In contrast, the extreme discharge events, which occur only very occasionally during the observation period of 1980-2020, reach values of nearly 100 m³/s.
 
@@ -1030,7 +1079,7 @@ p_massa <- ggplot(df_massa_prep, aes(x=Watervolume)) +
 plot(p_massa)
 ```
 
-### Plotting lm-trend line
+#### Plotting lm-trend line
 
 By plotting the trend line of the Massa River discharge over the observed period, we can observe a positive trend. When constructing a trend line based only on the upper 95 quantile values, we obtain a very similar trend, differing only in its offset/intercept.
 
@@ -1066,7 +1115,7 @@ ggplot(df_massa_prep, aes(x = Date, y = Watervolume)) +
   theme_minimal()
 ```
 
-### EVT Peaks over Threshold (POT)
+#### EVT Peaks over Threshold (POT)
 
 By setting the threshold at the upper 0.998 quantile, we obtain 30 observations that align well on the quantile plot, indicating an approximately normal distribution.
 
@@ -1087,12 +1136,11 @@ gev.diag(massa_ex_fit) # -> Return Period is on a daily scale
 massa_ex_fit$mle
 ```
 
-### EVT Block Max Year
+#### EVT Block Max Year
 
 With the Block Maxima (yearly) method, we consider the maximum water discharge value of each year. When plotted, the resulting quantile plot shows that the observations align closely with the reference line.
 
 The return level plot illustrates and predicts the frequency of extreme events on a yearly scale. Its shape closely resembles that of the POT approach. After approximately 10 years, the curve approaches a value of around 95 m³/s and levels off into a plateau at approximately 100 m³/s, without exceeding it. This suggests that even over a 1,000-year return period, the discharge is unlikely to surpass 100 m³/s.
-
 
 <u>**EVT Block max year massa**</u>
 ```{r EVT_modeling_block_max_massa, include = TRUE}
@@ -1143,7 +1191,7 @@ hq_table_massa <- data.frame(ReturnPeriod = return_periods_massa, HQ = HQ_massa)
 hq_table_massa
 ```
 
-### EVT conclusion
+#### EVT conclusion
 
 Our EVT analysis for the Massa River does not predict any extreme events approaching the “Bemessungshochwasser” of the Gibidum Dam. This indicates that the dam was appropriately dimensioned at the time of its construction and is capable of withstanding future extreme water discharges.
 
@@ -1174,7 +1222,9 @@ In this section, we look ahead to the future and describe next steps that can be
 
 # Appendix
 
-## Feature Explanation of the dataset
+## Feature Explanation of the dataset {#Table_feature_exp}
+
+[Back to Chapter 'Datapreparation/Cleaning'](#Data_preparation)
 
 ### Glacier Data
 
