@@ -706,6 +706,8 @@ summary(adf_seasonal)
 The original glacier series had strong trend and seasonal components and was not stationary. After seasonal differencing (lag=12) the series appears stationary: 
 The ADF test on the seasonally-differenced series strongly rejects a unit root since the test statistic (τ = –22.09) is far below the 1% critical value (–3.43), confirming that the series is stationary.
 
+### STL Decomposition
+
 ```{r glacier_stl, include = TRUE, warning=FALSE}
 decomp <- stl(ts_seasonal, s.window = "periodic")
 autoplot(decomp)
