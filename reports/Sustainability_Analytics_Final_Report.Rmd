@@ -250,7 +250,26 @@ df_glacier <- df_glacier %>%
 colSums(is.na(df_glacier))
 
 # create time series object for annual glacier mass balance
+df_glacier_annual <- df_glacier %>%
+  mutate(Year = year(obs_end_date)) %>%
+  group_by(Year) %>%
+  summarise(
+    annual_mass_balance_mmwe = mean(annual_mass_balance_mmwe, na.rm = TRUE),
+    .groups = "drop"
+  ) %>%
+  arrange(Year)
 
+head(df_glacier_annual)
+
+# create time series object
+ts_glacier_annually <- ts(
+  df_glacier_annual$annual_mass_balance_mmwe,
+  start = min(df_jungfraujoch_annual$Year, na.rm = TRUE),
+  end = max(df_glacier_annual$Year, na.rm = TRUE),
+  frequency = 1
+)
+
+ts_glacier_annually
 ```
 
 In order to perform correlation analysis, the bi-annual mass balance values were extrapolated to monthly values using weighted averages derived from the Jungfraujoch temperature data. 
@@ -586,13 +605,66 @@ The time series were checked for stationarity by inspecting their Autocorrelatio
 
 To formally assess the stationarity of the time series, we applied the Augmented Dickey-Fuller (ADF) test to the original series as well as to the remainder components obtained from multiple STL decompositions using varying seasonal (s.window) and trend (t.window) smoothing parameters. The ADF test consistently rejected the null hypothesis, indicating that both the raw series and the STL residuals can be considered stationary. Given the uniformly significant results, we relied primarily on visual inspection of the ACF and PACF plots of the remainder components to confirm the effective removal of seasonal and trend components and to ensure minimal autocorrelation in the residual structure.
 
+## Glacier Mass Balance
+
+# Annual glacier mass balance
+Visible downward trend but ACF and PACF indicate stationarity. Since we are interested in the long-term decline of the glacier mass balance we will include the trend in the ARIMAX model.
+<u>**Glacier mass balance annually ACF and PACF**</u>
+```{r glacier_annual_mass_balance_acf_pacf, include = TRUE}
+# plot
+plot(ts_glacier_annually)
+# ACF and PACF
+par(mfrow=c(1,2))
+acf(ts_glacier_annually)
+pacf(ts_glacier_annually)
+# adf
+adf.test(ts_glacier_annually)
+# KPSS test (null hypothesis = stationary)
+kpss.test(ts_glacier_annually)
+
+# Also check visually for trend
+plot(ts_glacier_annually, main="Glacier Mass Balance Over Time")
+abline(lm(ts_glacier_annually ~ time(ts_glacier_annually)), col="red")
+
+# Check if there's a significant trend
+summary(lm(ts_glacier_annually ~ time(ts_glacier_annually)))
+```
+
 ## Temperature Jungfraujoch
 
-### Stationarity
+### Annual mean temperature
+The annual mean temperature shows a trend starting around 1980. Additionally the ACF shows a slow decay indicating non-stationarity likely due to this trend. The PACF displays a clear cut-off at lag 2, indicating an AR(2) process. The Augmented Dickey-Fuller test further indicates non-stationarity with a non-significant p-value (p = .53).
+
+<u>**Jungfraujoch annually ACF and PACF**</u>
+```{r jungfraujoch_annual_temperature_acf_pacf, include = TRUE}
+plot(ts_jungfraujoch_annual)
+# acf and pacf
+par(mfrow = c(1,2))
+acf(ts_jungfraujoch_annual)
+pacf(ts_jungfraujoch_annual)
+# adf
+adf.test(ts_jungfraujoch_annual)
+```
+After differencing the ACF decays quickly. The PACF shows a mean reversion (negative partial autocorrelation) with a remaining AR process.
+<u>**Jungfraujoch annually decomposition**</u>
+```{r jungfraujoch_annual_temperature_decomposition, include = TRUE}
+# differencing
+ts_temp_diff <- diff(ts_jungfraujoch_annual)
+# check adf
+adf.test(ts_temp_diff)
+# check ACF and PACF of differenced series
+par(mfrow=c(2,1))
+acf(ts_temp_diff, main="ACF: Differenced Temperature", lag.max=20)
+pacf(ts_temp_diff, main="PACF: Differenced Temperature", lag.max=20)
+# plot
+plot(ts_temp_diff, main="Differenced Temperature")
+```
+
+### Monthly mean temperature
 The ACF shows a strong seasonal pattern reflecting the annual temperature cycle. The PACF indicates that monthly mean temperatures are influenced by the previous month (lag 1). Then shows a negative connection for the next few months (lags 2 to 6) and a positive connection again (lags 8 to 13). This is likely due to temperature changes following a seasonal pattern, where each month corresponds to a specific period (e.g. season).
 
 <u>**Jungfraujoch ACF and PACF**</u>
-```{r jungfraujoch_temperature_acf_pacf, include = TRUE}
+```{r jungfraujoch_monthly_temperature_acf_pacf, include = TRUE}
 # acf and pacf
 acf(ts_jungfraujoch) # acf indicates seasonality
 pacf(ts_jungfraujoch) # damped sinusoid
@@ -664,7 +736,33 @@ saveRDS(df_jungfraujoch_processed, "../data/processed/jungfraujoch_temperature.r
 
 ## Rainfall Brig (Alois)
 
-### Stationarity with stl
+### Annual Precipitation
+The total annual precipiation already is stationary.
+<u>**Brig rain annual**</u>
+```{r brig_rain_annual, include = TRUE}
+plot(rain_ts_annual)
+# acf and pacf
+par(mfrow = c(1,2))
+acf(rain_ts_annual)
+pacf(rain_ts_annual)
+# adf
+adf.test(rain_ts_annual)
+# check for hidden non-stationarity / ARCH effects
+# Square the series
+rain_sq <- rain_ts_annual^2
+
+# Plot the squared series
+plot(rain_sq, type = "l", main = "Squared Annual Rainfall", ylab = "Squared values", xlab = "Year")
+
+# ACF and PACF of squared series
+par(mfrow = c(1,2))
+acf(rain_sq, main = "ACF of Squared Rainfall")
+pacf(rain_sq, main = "PACF of Squared Rainfall")
+par(mfrow = c(1,1))
+```
+
+
+### Monthly - Stationarity with stl
 
 <u>**Brig rain stl**</u>
 ```{r brig_rain_stl, include = TRUE}
@@ -1006,6 +1104,36 @@ saveRDS(ts_multivariate, "../data/processed/ts_multivariate.rds")
 # Modelling
 
 ## Cross-Correlation Analysis
+
+### Yearly level
+
+<u>**CCF Annual Data**</u>
+```{r ccf_annual_data include = TRUE, warning=FALSE, message=FALSE}
+# Find overlapping period
+common_start <- max(start(ts_jungfraujoch_annual)[1], start(ts_glacier_annually)[1], start(rain_ts_annual)[1])
+common_end <- min(end(ts_jungfraujoch_annual)[1], end(ts_glacier_annually)[1], end(rain_ts_annual)[1])
+
+# Extract common periods
+ts_temp_aligned <- window(ts_jungfraujoch_annual, start=common_start, end=common_end)
+ts_glacier_aligned <- window(ts_glacier_annually, start=common_start, end=common_end)
+ts_precip_aligned <- window(rain_ts_annual, start=common_start, end=common_end)
+
+# Verify they're now the same length
+length(ts_temp_aligned)
+length(ts_glacier_aligned)
+length(ts_precip_aligned)
+
+# Temperature changes affecting glacier balance
+ccf(ts_temp_aligned, ts_glacier_aligned)
+# Precipitation affecting glacier balance  
+ccf(ts_precip_aligned, ts_glacier_aligned)
+# Also check reverse direction (less likely but good to verify)
+ccf(ts_glacier_aligned, ts_temp_aligned)
+ccf(ts_glacier_aligned, ts_precip_aligned)
+```
+
+### Monthly level
+
 To investigate potential linear relationships between the different time series, we use the cross-correlation function (ccf). For this we only need the stationary remainder components of each time series, since we want to avoid spurious correlations caused by trends and seasonal components.
 
 When looking at the output of the cross-correlation function between Jungfraujoch temperature and glacier mass balance the correlations are very weak (|r| < 0.3), indicating little to no relationship between the two variables. At a first glance this result surprised us. Yet considering that the glaicer mass balance data had been transformed to show change from year to year (by differencing with a lag of 12), this finding made sense. Glaciers react slowly and mainly to long-term seasonal and yearly patterns, not to short monthly changes. Because the two datasets were on different time scales (monthly temperature and annually glacier mass balance), it was not possible to detect a direct correlation between them. The same argumentation applies to the cross-correlation function between glacier mass balance the waterlevel of the river Massa.
