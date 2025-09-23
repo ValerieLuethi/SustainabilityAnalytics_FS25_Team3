@@ -827,117 +827,145 @@ For convenience for further modelling we merged the preprocessed datasets jungfr
 
 <u>**Merge data*</u>
 ```{r merge_data, include = TRUE}
-# laod data
+# -----------------------------
+# 1) Load data
+# -----------------------------
 df_jungfrau <- readRDS("../data/processed/jungfraujoch_temperature.rds")
 df_glacier <- readRDS("../data/processed/glacier_monthly_processed.rds")
 df_waterlevel <- readRDS("../data/processed/waterlevel_det_stoch.rds")
+df_waterdischarge <- readRDS("../data/processed/stationary_monthly_mean_watervolume_massa.rds")
 df_precipitation <- readRDS("../data/processed/rain_decomposition.rds")
-# convert date columns to identical format
-# jungfrau
-# Number of rows
-n <- nrow(df_jungfrau)
 
-# Create monthly sequence from start year/month
-start_date <- as.Date("1933-01-01")
+# -----------------------------
+# 2) Format Date columns
+# -----------------------------
+# Jungfrau
+n <- nrow(df_jungfrau)
 df_jungfrau <- df_jungfrau %>%
-  mutate(Date = seq.Date(from = start_date, by = "month", length.out = n))
-# glacier
+  mutate(Date = seq.Date(from = as.Date("1933-01-01"), by = "month", length.out = n))
+
+# Glacier
 df_glacier <- df_glacier %>%
   mutate(Date = as.Date(year_month))
-# waterlevel
-# Map German month abbreviations to month numbers
+
+# Waterlevel
 month_map <- c(
   "Jan" = 1, "Feb" = 2, "Mär" = 3, "Apr" = 4,
   "Mai" = 5, "Jun" = 6, "Jul" = 7, "Aug" = 8,
   "Sep" = 9, "Okt" = 10, "Nov" = 11, "Dez" = 12
 )
-
 df_waterlevel <- df_waterlevel %>%
   mutate(
-    # split year_month into month abbreviation and year
     Month = sapply(strsplit(year_month, " "), `[`, 1),
-    Year  = as.numeric(sapply(strsplit(year_month, " "), `[`, 2)),
-    Month = month_map[Month],                        # map to numeric month
-    Date  = as.Date(paste0(Year, "-", Month, "-01")) # create Date
+    Year = as.numeric(sapply(strsplit(year_month, " "), `[`, 2)),
+    Month = month_map[Month],
+    Date = as.Date(paste0(Year, "-", Month, "-01"))
   ) %>%
-  select(-Month, -Year, -year_month)  # remove helper columns
-# precipiation
-str(df_precipitation) # already in right format
+  select(-Month, -Year, -year_month)
 
-# merge by dates, full outer join
-df_merged <- df_jungfrau %>%
-  select(Date, observed, trend, seasonal, remainder) %>%
-  full_join(df_glacier %>%
-              select(Date, mass_balance_monthly, trend, seasonal, deterministic, stochastic),
-            by = "Date", suffix = c("_jungfrau", "_glacier")) %>%
-  full_join(df_waterlevel %>%
-              select(Date, waterlevel_m, trend, seasonal, deterministic, stochastic),
-            by = "Date", suffix = c("", "_waterlevel")) %>%
-  full_join(df_precipitation %>%
-              select(Date, Original, Trend, Seasonal, Remainder),
-            by = "Date", suffix = c("", "_precipitation")) %>%
-  arrange(Date)
-
-# rename columns
-df_merged <- df_merged %>%
+# -----------------------------
+# 3) Rename columns BEFORE joining
+# -----------------------------
+df_jungfrau <- df_jungfrau %>%
   rename(
-    # Jungfrau
     observed_jungfrau = observed,
-    trend_jungfrau = trend_jungfrau,
-    seasonal_jungfrau = seasonal_jungfrau,
-    remainder_jungfrau = remainder,
-    
-    # Glacier
+    trend_jungfrau = trend,
+    seasonal_jungfrau = seasonal,
+    remainder_jungfrau = remainder
+  )
+
+df_glacier <- df_glacier %>%
+  rename(
     mass_balance_glacier = mass_balance_monthly,
-    trend_glacier = trend_glacier,
-    seasonal_glacier = seasonal_glacier,
+    trend_glacier = trend,
+    seasonal_glacier = seasonal,
     deterministic_glacier = deterministic,
-    stochastic_glacier = stochastic,
-    
-    # Waterlevel
+    stochastic_glacier = stochastic
+  )
+
+df_waterlevel <- df_waterlevel %>%
+  rename(
     waterlevel = waterlevel_m,
     trend_waterlevel = trend,
     seasonal_waterlevel = seasonal,
-    deterministic_waterlevel = deterministic_waterlevel,
-    stochastic_waterlevel = stochastic_waterlevel,
-    
-    # Precipitation
+    deterministic_waterlevel = deterministic,
+    stochastic_waterlevel = stochastic
+  )
+
+df_waterdischarge <- df_waterdischarge %>%
+  rename(
+    waterdischarge = Original,
+    trend_waterdischarge = Trend,
+    seasonal_waterdischarge = Seasonal,
+    remainder_waterdischarge = Remainder
+  )
+
+df_precipitation <- df_precipitation %>%
+  rename(
     precipitation = Original,
     trend_precipitation = Trend,
     seasonal_precipitation = Seasonal,
     remainder_precipitation = Remainder
   )
 
-# select same time span
-# Find first and last date of each dataset
-start_jungfrau <- min(df_merged$Date[!is.na(df_merged$observed_jungfrau)])
-end_jungfrau   <- max(df_merged$Date[!is.na(df_merged$observed_jungfrau)])
+# -----------------------------
+# 4) Merge datasets by Date
+# -----------------------------
+df_merged <- df_jungfrau %>%
+  full_join(df_glacier, by = "Date") %>%
+  full_join(df_waterlevel, by = "Date") %>%
+  full_join(df_waterdischarge, by = "Date") %>%
+  full_join(df_precipitation, by = "Date") %>%
+  arrange(Date)
 
-start_glacier  <- min(df_merged$Date[!is.na(df_merged$mass_balance_glacier)])
-end_glacier    <- max(df_merged$Date[!is.na(df_merged$mass_balance_glacier)])
+# -----------------------------
+# 5) Select overlapping date range
+# -----------------------------
+start_overlap <- max(
+  min(df_merged$Date[!is.na(df_merged$observed_jungfrau)]),
+  min(df_merged$Date[!is.na(df_merged$mass_balance_glacier)]),
+  min(df_merged$Date[!is.na(df_merged$waterlevel)]),
+  min(df_merged$Date[!is.na(df_merged$waterdischarge)]),
+  min(df_merged$Date[!is.na(df_merged$precipitation)])
+)
 
-start_water    <- min(df_merged$Date[!is.na(df_merged$waterlevel)])
-end_water      <- max(df_merged$Date[!is.na(df_merged$waterlevel)])
-
-start_precip   <- min(df_merged$Date[!is.na(df_merged$precipitation)])
-end_precip     <- max(df_merged$Date[!is.na(df_merged$precipitation)])
-
-# Overlapping date range
-start_overlap <- max(start_jungfrau, start_glacier, start_water, start_precip)
-end_overlap   <- min(end_jungfrau, end_glacier, end_water, end_precip)
+end_overlap <- min(
+  max(df_merged$Date[!is.na(df_merged$observed_jungfrau)]),
+  max(df_merged$Date[!is.na(df_merged$mass_balance_glacier)]),
+  max(df_merged$Date[!is.na(df_merged$waterlevel)]),
+  max(df_merged$Date[!is.na(df_merged$waterdischarge)]),
+  max(df_merged$Date[!is.na(df_merged$precipitation)])
+)
 
 df_merged_overlap <- df_merged %>%
   filter(Date >= start_overlap & Date <= end_overlap)
 
-str(df_merged_overlap)
-head(df_merged_overlap)
-colSums(is.na(df_merged_overlap))
-any(is.na(df_merged_overlap)) # no NAs
+# -----------------------------
+# 6) Convert to multivariate ts object
+# -----------------------------
+# Select only the stationary/stochastic components
+df_ts <- df_merged_overlap %>%
+  select(
+    remainder_jungfrau,
+    stochastic_glacier,
+    stochastic_waterlevel,
+    remainder_waterdischarge,
+    remainder_precipitation
+  )
 
-# create processed data file
+start_year <- year(min(df_merged_overlap$Date))
+start_month <- month(min(df_merged_overlap$Date))
+
+ts_multivariate <- ts(df_ts,
+                      start = c(start_year, start_month),
+                      frequency = 12)
+
+# -----------------------------
+# 7) Save processed data
+# -----------------------------
 write.csv(df_merged_overlap, "../data/processed/df_merged.csv", row.names = FALSE)
-# RDS
 saveRDS(df_merged_overlap, "../data/processed/df_merged.rds")
+saveRDS(ts_multivariate, "../data/processed/ts_multivariate.rds")
 
 ```
 # Modelling
