@@ -972,63 +972,160 @@ saveRDS(ts_multivariate, "../data/processed/ts_multivariate.rds")
 ## Cross-Correlation Analysis
 To investigate potential linear relationships between the different time series, we use the cross-correlation function (ccf). For this we only need the stationary remainder components of each time series, since we want to avoid spurious correlations caused by trends and seasonal components.
 
-When looking at the output of the cross-correlation function between Jungfraujoch temperature and glacier mass balance the correlations are very weak (|r| < 0.3), indicating little to no relationship between the two variables. At a first glance this result surprised us. Yet considering that the glaicer mass balance data had been transformed to show change from year to year (by differencing with a lag of 12), this finding made sense. Glaciers react slowly and mainly to long-term seasonal and yearly patterns, not to short monthly changes. Because the two datasets were on different time scales (monthly temperature and annually glacier mass balance), it was not possible to detect a direct correlation between them.
+When looking at the output of the cross-correlation function between Jungfraujoch temperature and glacier mass balance the correlations are very weak (|r| < 0.3), indicating little to no relationship between the two variables. At a first glance this result surprised us. Yet considering that the glaicer mass balance data had been transformed to show change from year to year (by differencing with a lag of 12), this finding made sense. Glaciers react slowly and mainly to long-term seasonal and yearly patterns, not to short monthly changes. Because the two datasets were on different time scales (monthly temperature and annually glacier mass balance), it was not possible to detect a direct correlation between them. The same argumentation applies to the cross-correlation function between glacier mass balance the waterlevel of the river Massa.
 <u>**CCF Jungfraujoch Temperature & Glacier Mass Balance**</u>
 ```{r ccf_jungfraujoch_temperature_glacier_mass_balance, include = TRUE, warning=FALSE, message=FALSE}
-plot(ts_multivariate[, "remainder_jungfrau"], type="l", col="orange", lwd=2, ylab="Scaled value", xlab="Time")
-lines(ts_multivariate[, "remainder_glacier"], col="blue", lwd=2)
-legend("topright", legend=c("Temperature Jungfraujoch", "Glacier Mass Balance"), col=c("orange","blue"), lty=1)
+# Scale the two series and convert to numeric vectors
+jungfrau_scaled <- as.numeric(scale(ts_multivariate[, "remainder_jungfrau"]))
+glacier_scaled  <- as.numeric(scale(ts_multivariate[, "remainder_glacier"]))
+
+# Plot scaled series
+plot(jungfrau_scaled, type="l", col="orange", lwd=2,
+     ylab="Scaled value", xlab="Time")
+lines(glacier_scaled, col="blue", lwd=2)
+legend("topright", legend=c("Temperature Jungfraujoch", "Glacier Mass Balance"),
+       col=c("orange","blue"), lty=1)
 
 # Set 1x2 layout and increase top margin
 par(mfrow = c(1, 2), mar = c(4, 4, 5, 1)) # bottom, left, top, right
-
-# CCF: Glacier leads Temperature
-ccf(ts_multivariate[, 2], ts_multivariate[, 1],
-    main = "Glacier vs Temperature")
-
 # CCF: Temperature leads Glacier
-ccf(ts_multivariate[, 1], ts_multivariate[, 2],
-    main = "Temperature vs Glacier")
-
-
+ccf(glacier_scaled, jungfrau_scaled, # temperature leads
+    main = "CCF: Glacier vs Temperature")
+# CCF: Glacier leads Temperatues
+ccf(jungfrau_scaled, glacier_scaled, # glacier leads
+    main = "CCF: Temperature vs Glacier")
 # Reset plotting parameters
 par(mfrow = c(1, 1), mar = c(5, 4, 4, 2) + 0.1)
 ```
 
 <u>**CCF Glacier Mass Balance & Massa Waterlevel**</u>
 ```{r ccf_glacier_mass_balance_waterlevel, include = TRUE, warning=FALSE, message=FALSE}
-glacier_scaled <- scale(glacier_ts)
-waterlevel_scaled <- scale(waterlevel_ts)
-plot(glacier_scaled, type="l", col="orange", lwd=2, ylab="Scaled value", xlab="Time")
-lines(waterlevel_scaled, col="blue", lwd=2)
-legend("topright", legend=c("Glacier Mass Balance", "Waterlevel Massa"), col=c("orange","blue"), lty=1)
-ccf(waterlevel_ts, glacier_ts) # glacier leads
-ccf(glacier_ts, waterlevel_ts) # waterlevel leads
+# Scale the two series and convert to numeric vectors
+waterlevel_scaled <- as.numeric(scale(ts_multivariate[, "remainder_waterlevel"]))
+glacier_scaled  <- as.numeric(scale(ts_multivariate[, "remainder_glacier"]))
+
+# Plot scaled series
+plot(waterlevel_scaled, type="l", col="orange", lwd=2,
+     ylab="Scaled value", xlab="Time")
+lines(glacier_scaled, col="blue", lwd=2)
+legend("topright", legend=c("Waterlevel Massa", "Glacier Mass Balance"),
+       col=c("orange","blue"), lty=1)
+
+# Set 1x2 layout and increase top margin
+par(mfrow = c(1, 2), mar = c(4, 4, 5, 1)) # bottom, left, top, right
+# CCF: Waterlevel leads Glacier
+ccf(glacier_scaled, waterlevel_scaled, # waterlevel leads
+    main = "CCF: Glacier vs Waterlevel")
+# CCF: Glacier leads Waterlevel
+ccf(waterlevel_scaled, glacier_scaled, # glacier leads
+    main = "CCF: Waterlevel vs Glacier")
+# Reset plotting parameters
+par(mfrow = c(1, 1), mar = c(5, 4, 4, 2) + 0.1)
+```
+
+<u>**CCF Glacier Mass Balance & Massa Waterdischarge**</u>
+```{r ccf_glacier_mass_balance_waterdischarge, include = TRUE, warning=FALSE, message=FALSE}
+# Scale the two series and convert to numeric vectors
+waterdischarge_scaled <- as.numeric(scale(ts_multivariate[, "remainder_waterdischarge"]))
+glacier_scaled  <- as.numeric(scale(ts_multivariate[, "remainder_glacier"]))
+
+# Plot scaled series
+plot(waterdischarge_scaled, type="l", col="orange", lwd=2,
+     ylab="Scaled value", xlab="Time")
+lines(glacier_scaled, col="blue", lwd=2)
+legend("topright", legend=c("Waterdischarge Massa", "Glacier Mass Balance"),
+       col=c("orange","blue"), lty=1)
+
+# Set 1x2 layout and increase top margin
+par(mfrow = c(1, 2), mar = c(4, 4, 5, 1)) # bottom, left, top, right
+# CCF: Waterlevel leads Glacier
+ccf(glacier_scaled, waterdischarge_scaled, # waterdischarge leads
+    main = "CCF: Glacier vs Waterdischarge")
+# CCF: Glacier leads Waterlevel
+ccf(waterdischarge_scaled, glacier_scaled, # glacier leads
+    main = "CCF: Waterdischarge vs Glacier")
+# Reset plotting parameters
+par(mfrow = c(1, 1), mar = c(5, 4, 4, 2) + 0.1)
 ```
 
 For the cross-correlation function between the Jungfraujoch temperature and the waterlevels Massa we can observe that temperature is leading with significant positive correlations at lags 0, 1 and 3. This is in line with our hypothesis that higher temperatures lead to increased snow melt, which then raises water levels with some delay. The negative correlations at lags 9 and 10 are likely due to the correlation of past high summer temperatures with low winter water levels. 
 
 <u>**CCF Jungfraujoch Temperature & Massa Waterlevel**</u>
 ```{r ccf_jungfraujoch_temperature_waterlevel, include = TRUE, warning=FALSE, message=FALSE}
-temp_scaled <- scale(temp_ts)
-waterlevel_scaled <- scale(waterlevel_ts)
-plot(temp_scaled, type="l", col="orange", lwd=2, ylab="Scaled value", xlab="Time")
+# Scale the two series and convert to numeric vectors
+jungfrau_scaled <- as.numeric(scale(ts_multivariate[, "remainder_jungfrau"]))
+waterlevel_scaled  <- as.numeric(scale(ts_multivariate[, "remainder_waterlevel"]))
+
+# Plot scaled series
+plot(jungfrau_scaled, type="l", col="orange", lwd=2,
+     ylab="Scaled value", xlab="Time")
 lines(waterlevel_scaled, col="blue", lwd=2)
-legend("topright", legend=c("Temperature Jungfraujoch", "Waterlevel Massa"), col=c("orange","blue"), lty=1)
-ccf(waterlevel_ts, temp_ts) # temperature leads
-ccf(temp_ts, waterlevel_ts) # waterlevel leads
+legend("topright", legend=c("Temperature Jungfraujoch", "Waterlevel Massa"),
+       col=c("orange","blue"), lty=1)
+
+# Set 1x2 layout and increase top margin
+par(mfrow = c(1, 2), mar = c(4, 4, 5, 1)) # bottom, left, top, right
+# CCF: Temperature leads Waterlevel
+ccf(waterlevel_scaled, jungfrau_scaled, 
+    main = "CCF: Waterlevel vs Temperature")
+# CCF: Glacier leads Temperatues
+ccf(jungfrau_scaled, waterlevel_scaled,
+    main = "CCF: Temperature vs Waterlevel")
+# Reset plotting parameters
+par(mfrow = c(1, 1), mar = c(5, 4, 4, 2) + 0.1)
 ```
+When we look at waterdischarge instead of waterlevel we see a strong correlation with temperature at lag 0 (within the same month). This indicates that the monthly waterdischarge of Massa responds directly and quickly to monthly temperature changes. With the waterdischarge increasing as temperatures rise, reflecting the immediate hydrological response to snow melt and glacier melt during warmer periods. Conversly, lower temperatures are associated with lower discharge due to reduced melt and freezing.
+
+<u>**CCF Jungfraujoch Temperature & Massa Waterdischarge**</u>
+```{r ccf_jungfraujoch_temperature_waterlevel, include = TRUE, warning=FALSE, message=FALSE}
+# Scale the two series and convert to numeric vectors
+jungfrau_scaled <- as.numeric(scale(ts_multivariate[, "remainder_jungfrau"]))
+waterdischarge_scaled  <- as.numeric(scale(ts_multivariate[, "remainder_waterdischarge"]))
+
+# Plot scaled series
+plot(jungfrau_scaled, type="l", col="orange", lwd=2,
+     ylab="Scaled value", xlab="Time")
+lines(waterdischarge_scaled, col="blue", lwd=2)
+legend("topright", legend=c("Temperature Jungfraujoch", "Waterdischarge Massa"),
+       col=c("orange","blue"), lty=1)
+
+# Set 1x2 layout and increase top margin
+par(mfrow = c(1, 2), mar = c(4, 4, 5, 1)) # bottom, left, top, right
+# CCF: Temperature leads Waterdischarge
+ccf(waterdischarge_scaled, jungfrau_scaled, 
+    main = "CCF: Waterdischarge vs Temperature")
+# CCF: Glacier leads Temperatues
+ccf(jungfrau_scaled, waterdischarge_scaled,
+    main = "CCF: Temperature vs Waterdischarge")
+# Reset plotting parameters
+par(mfrow = c(1, 1), mar = c(5, 4, 4, 2) + 0.1)
+```
+
 The cross-correlation analysis between the monthly precipitations in Brig and the monthly waterlevels of Massa shows no significant relationship. Due to the use of monthly data it is possible that short-term effects were smoothed out. It might also be the case that precipitations in the valley in Brig does not reflect the hdydrological processes in the glacial upstream cachement of the river Massa. In further analysis snow and glacier melt should be taken into account as well. In addition, using the water discharge instead of water level could provide a more direct measure of the river's hydrological response.
 
 <u>**CCF Precipitation Brig & Massa Waterlevel**</u>
 ```{r ccf_precipitation_waterlevel, include = TRUE, warning=FALSE, message=FALSE}
-precip_scaled <- scale(precip_ts)
-waterlevel_scaled <- scale(waterlevel_ts)
-plot(precip_scaled, type="l", col="orange", lwd=2, ylab="Scaled value", xlab="Time")
+# Scale the two series and convert to numeric vectors
+precipitation_scaled <- as.numeric(scale(ts_multivariate[, "remainder_precipitation"]))
+waterlevel_scaled  <- as.numeric(scale(ts_multivariate[, "remainder_waterlevel"]))
+
+# Plot scaled series
+plot(precipitation_scaled, type="l", col="orange", lwd=2,
+     ylab="Scaled value", xlab="Time")
 lines(waterlevel_scaled, col="blue", lwd=2)
-legend("topright", legend=c("Precipitation Brig", "Waterlevel Massa"), col=c("orange","blue"), lty=1)
-ccf(waterlevel_ts, precip_ts) # precipitation leads
-ccf(precip_ts, waterlevel_ts) # waterlevel leads
+legend("topright", legend=c("Precipitation Brig", "Waterlevel Massa"),
+       col=c("orange","blue"), lty=1)
+
+# Set 1x2 layout and increase top margin
+par(mfrow = c(1, 2), mar = c(4, 4, 5, 1)) # bottom, left, top, right
+# CCF: Precipitation leads Waterlevel
+ccf(waterlevel_scaled, precipitation_scaled, 
+    main = "CCF: Waterlevel vs Precipitation")
+# CCF: Waterlevel leads Precipitation
+ccf(precipitation_scaled, waterlevel_scaled,
+    main = "CCF: Precipitation vs Waterlevel")
+# Reset plotting parameters
+par(mfrow = c(1, 1), mar = c(5, 4, 4, 2) + 0.1)
 ```
 
 
