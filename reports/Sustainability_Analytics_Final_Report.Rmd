@@ -1077,7 +1077,7 @@ par(mfrow = c(1, 1), mar = c(5, 4, 4, 2) + 0.1)
 When we look at waterdischarge instead of waterlevel we see a strong correlation with temperature at lag 0 (within the same month). This indicates that the monthly waterdischarge of Massa responds directly and quickly to monthly temperature changes. With the waterdischarge increasing as temperatures rise, reflecting the immediate hydrological response to snow melt and glacier melt during warmer periods. Conversly, lower temperatures are associated with lower discharge due to reduced melt and freezing.
 
 <u>**CCF Jungfraujoch Temperature & Massa Waterdischarge**</u>
-```{r ccf_jungfraujoch_temperature_waterlevel, include = TRUE, warning=FALSE, message=FALSE}
+```{r ccf_jungfraujoch_temperature_waterdischarge, include = TRUE, warning=FALSE, message=FALSE}
 # Scale the two series and convert to numeric vectors
 jungfrau_scaled <- as.numeric(scale(ts_multivariate[, "remainder_jungfrau"]))
 waterdischarge_scaled  <- as.numeric(scale(ts_multivariate[, "remainder_waterdischarge"]))
@@ -1124,6 +1124,30 @@ ccf(waterlevel_scaled, precipitation_scaled,
 # CCF: Waterlevel leads Precipitation
 ccf(precipitation_scaled, waterlevel_scaled,
     main = "CCF: Precipitation vs Waterlevel")
+# Reset plotting parameters
+par(mfrow = c(1, 1), mar = c(5, 4, 4, 2) + 0.1)
+```
+<u>**CCF Precipitation Brig & Massa Waterdischarge**</u>
+```{r ccf_precipitation_waterdischarge, include = TRUE, warning=FALSE, message=FALSE}
+# Scale the two series and convert to numeric vectors
+precipitation_scaled <- as.numeric(scale(ts_multivariate[, "remainder_precipitation"]))
+waterdischarge_scaled  <- as.numeric(scale(ts_multivariate[, "remainder_waterdischarge"]))
+
+# Plot scaled series
+plot(precipitation_scaled, type="l", col="orange", lwd=2,
+     ylab="Scaled value", xlab="Time")
+lines(waterdischarge_scaled, col="blue", lwd=2)
+legend("topright", legend=c("Precipitation Brig", "Waterdischarge Massa"),
+       col=c("orange","blue"), lty=1)
+
+# Set 1x2 layout and increase top margin
+par(mfrow = c(1, 2), mar = c(4, 4, 5, 1)) # bottom, left, top, right
+# CCF: Precipitation leads Waterdischarge
+ccf(waterdischarge_scaled, precipitation_scaled, 
+    main = "CCF: Waterdischarge vs Precipitation")
+# CCF: Waterdischarge leads Precipitation
+ccf(precipitation_scaled, waterdischarge_scaled,
+    main = "CCF: Precipitation vs Waterdischarge")
 # Reset plotting parameters
 par(mfrow = c(1, 1), mar = c(5, 4, 4, 2) + 0.1)
 ```
