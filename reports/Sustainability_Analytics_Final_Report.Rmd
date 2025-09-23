@@ -42,6 +42,7 @@ library(ggplot2)
 library(lubridate)
 library(tidyr)
 library(tseries)  # for working with time series
+library(urca)     # for performing ADF unit root test
 library(ismev)    # for EVT gev.fit
 library(tidyverse)# for data handling (includes ggplot2, dplyr, tidyr, readr, lubridate)
 library(evd)      # for calculating HQ values in EVT
@@ -510,31 +511,117 @@ rain_ts <- ts(df_rain$rhs150m0,
 
 
 
-# Exploratory Data Analysis (Vani)
+# Exploratory Data Analysis
+
+To explore the impact of climate change on the Massa River and future water availability for Brig, we examined four interconnected environmental indicators: mean regional temperature, the yearly area of the Aletsch Glacier, monthly river water levels, and mean precipitation over Brig. These variables were selected because they capture both the drivers (temperature and precipitation) and the hydrological consequences (glacier retreat and river water levels) of climate change. By analyzing their long-term trends and relationships, we gain insights into how warming has already altered the glacier–river system and what this implies for Brig’s future water security.
 
 ### Temperature
-<u>**data exploration jungfraujoch**</u>
-```{r jungfraujoch_temperature_data_exploration, include = TRUE}
+```{r temperature_eda, include = TRUE}
 ts_temp <- ts(df_jungfraujoch_reduced$temp_mean_C,
-              start = min(df_jungfraujoch_reduced$reference_timestamp),
+              start = c(1933, 1),
               frequency = 12)   # monthly data (12 obs per year)
-
-str(ts_temp)
 summary(ts_temp)
 
 # Plot observed temp with LOWESS trend
 plot(ts_temp,
      ylab = "Observed Temperature (°C)",
      xlab = "Year",
-     col = "blue", lwd = 1,
-     main = "Observed Jungfrau Temperature")
+     main = "Monthly Mean Temperature at Jungfraujoch",
+     col = "blue", lwd = 1)
 
 # Add smoothed trend line
 lines(lowess(time(ts_temp), ts_temp), col = "red", lwd = 2)
 
 ```
+
 A look at the summary statistics reveals that monthly mean temperatures at Jungfraujoch are predominantly below freezing, ranging from extremely cold (-21.7 C°) to just above freezing (3.5 C°). This is consistent with the high-altitude alpine climate.
-The plot of monthly mean temperatures shows clear seasonal oscillations, with cold winters and milder summers. There is also a slight upward trend, suggesting that the mean temperatures might increase gradually over the years. This could hint at the climate getting warmer.
+The plot of monthly mean temperatures shows clear seasonal oscillations, with cold winters and milder summers. However, the long-term trend indicates a gradual rise in mean temperatures since the early 20th century. This increase aligns with broader global warming patterns and is a critical driver of glacial retreat in the Alps.
+
+### Glacier
+```{r glacier_eda, include = TRUE}
+ts_mass <- ts(df_glacier$glacier_area_m2, 
+              start = as.numeric(format(min(df_glacier$obs_end_date), "%Y")), 
+              end = as.numeric(format(max(df_glacier$obs_end_date), "%Y")), 
+              frequency = 1)
+summary(ts_mass)
+
+plot(
+  ts_mass,
+  ylab = "Yearly Aletsch Glacial Area (m²)",
+  xlab = "Year",
+  main = "Annual Area of the Aletsch Glacier",
+  col = "blue",
+  lwd = 1,
+)
+lines(lowess(ts_mass), col = "red", lwd = 3)
+```
+
+In the last 100 years, the Aletsch Glacier, the largest glacier in the Alps, has already reduced 18% in area.
+The decline is especially steep in recent decades, reflecting the intensifying effects of rising temperatures. The shrinking glacier not only represents a loss of ice mass but also signals a reduced capacity to provide stable meltwater flow in the future.
+
+### Massa Waterlevel
+```{r massa_eda, include = TRUE}
+summary(waterlevel_ts)
+
+plot(
+  waterlevel_ts,
+  ylab = "Monthly Waterlevels of Massa (m)",
+  xlab = "Year",
+  main = "Monthly Average Water Level of the Massa River",
+  col = "blue",
+  lwd = 1,
+)
+lines(lowess(waterlevel_ts), col = "red", lwd = 3)
+```
+
+The Massa River exhibits distinct seasonal fluctuations, with peak water levels corresponding to summer melt periods. The long-term trend shows a slight increase in average water levels, likely due to intensified glacier melt under rising temperatures. While this suggests that warming has temporarily enhanced summer flows, such increases are not sustainable as the glacier continues to diminish. In the long run, reduced glacial mass will lead to declining water availability.
+
+### Massa Water Discharge
+```{r massa_discharge_eda, include = TRUE}
+summary(ts_watervolume_monthly)
+
+plot(
+  ts_watervolume_monthly,
+  ylab = "Monthly Water Discharge from Massa (m³/s)",
+  xlab = "Year",
+  main = "Monthly Average Water Discharge of the Massa River",
+  col = "blue",
+  lwd = 1,
+)
+lines(lowess(ts_watervolume_monthly), col = "red", lwd = 3)
+```
+Looking at the summary statistics, the skewed distribution (median = 3.53 m³/s, mean > median) indicates that discharge is low for much of the year, punctuated by high-flow events during the melt season.
+The plot of Monthly Average Water Discharge of the Massa River shows pronounced seasonal variation in water discharge, with sharp peaks during the summer months. This pattern reflects the strong influence of glacial melt on the river’s hydrology. The long-term trend (red line) suggests a modest increase in discharge over time, consistent with intensified glacial melting.
+
+### Brig Precipitation
+```{r brig_eda, include = TRUE}
+summary(rain_ts)
+
+plot(
+  rain_ts,
+  ylab = "Monthly Precipation over Brig (mm)",
+  xlab = "Year",
+  main = "Monthly Precipitation over Brig",
+  col = "blue",
+  lwd = 1,
+)
+lines(lowess(rain_ts), col = "red", lwd = 3)
+```
+Precipitation data for Brig reveal considerable short-term variability but no strong long-term trend. This relative stability indicates that changes in precipitation patterns are unlikely to explain observed changes in river levels. Other factors, such as glacier melt influenced by rising temperatures, may therefore play a more significant role.
+
+## Implications
+Taken together, the exploratory findings suggest several interconnected impacts of climate change on Brig’s water resources:
+
+  * The exploratory analysis suggests that rising temperatures accelerate glacier retreat, reducing long-term ice reserves.
+  
+  * In the short term, this enhances Massa River water levels, increasing the risk of high summer flows and potential flooding.
+  
+  * In the long term, continued glacier shrinkage could possibly weaken the buffering capacity of meltwater, threatening water security for Brig despite stable precipitation.
+  
+**Hypothesis**: Glacier retreat has a dual effect on downstream hydrology — initially increasing river discharge extremes due to enhanced melt, but ultimately reducing baseflow and water availability as glacier storage diminishes. This process may already be detectable in discharge anomalies observed after 2015.
+
+These hypotheses form the basis for subsequent ARIMAX and EVT modelling, which are used to formally test the extent and significance of climate-driven impacts on Brig’s population.
+  
 
 # Stationarity
 The time series were checked for stationarity by inspecting their Autocorrelation Functions (ACF) and Partial Autocorrelation Functions (PACF). To further investigate the structure of the data, we applied Seasonal-Trend decomposition using Loess (STL). STL separates the time series into trend, seasonal and remainder components, which is useful to identify and remove seasonality and trends before time series modelling. Different variations of the s.window parameter were tested to control the smoothness of the seasonal component. Additionaly the t.window parameter was used to control the smoothing of the trend component.
@@ -625,7 +712,41 @@ write.csv(df_jungfraujoch_processed, "../data/processed/jungfraujoch_temperature
 saveRDS(df_jungfraujoch_processed, "../data/processed/jungfraujoch_temperature.rds")
 ```
 
-## Rainfall Brig (Alois)
+## Glacier
+
+### Differencing 
+
+```{r glacier_differencing, include = TRUE}
+
+ts_glacier <- ts(df_glacier_monthly$mass_balance_monthly, frequency = 12,
+                 start = c(1933, 1))
+ts_seasonal <- diff(ts_glacier, lag = 12)
+adf_seasonal <- ur.df(ts_seasonal, type = "drift", selectlags = "AIC")
+summary(adf_seasonal)
+```
+The original glacier series had strong trend and seasonal components and was not stationary. After seasonal differencing (lag=12) the series appears stationary: 
+The ADF test on the seasonally-differenced series strongly rejects a unit root since the test statistic (τ = –22.09) is far below the 1% critical value (–3.43), confirming that the series is stationary.
+
+### STL Decomposition
+
+```{r glacier_stl, include = TRUE, warning=FALSE}
+decomp <- stl(ts_seasonal, s.window = "periodic")
+autoplot(decomp)
+```
+The STL decomposition of the differenced time series reveals clear evidence of non-stationarity. The trend component highlights long-term shifts (climate-driven changes), while the seasonal component shows a strong and highly regular annual cycle consistent with the natural melt–accumulation processes of glaciers. The remainder, which represents the unexplained component after removing trend and seasonality, fluctuates around zero and resembles white noise, although its variance appears to increase in recent decades, suggesting growing irregularity and more extreme events.
+
+```{r glacier_remainders, include = TRUE}
+## Extract residuals
+residuals_stl <- decomp$time.series[,"remainder"]
+
+## Plot ACF and PACF of residuals
+par(mfrow=c(2,1))
+acf(residuals_stl, main="ACF of STL Residuals", na.action=na.pass)
+pacf(residuals_stl, main="PACF of STL Residuals", na.action=na.pass)
+```
+The ACF and PACF of the STL residuals provide further confirmation: both show no significant autocorrelation at any lag, indicating that the systematic seasonal and trend-driven patterns have been effectively removed and that the residual component can be treated as stationary noise.
+
+## Rainfall Brig
 
 ### Stationarity with stl
 
@@ -770,6 +891,7 @@ det_stoch <- data.frame(
 # write.csv(det_stoch, "data/processed/waterlevel_det_stoch.csv", row.names = FALSE)
                 
 ```
+
 
 
 ### Water Discharge
