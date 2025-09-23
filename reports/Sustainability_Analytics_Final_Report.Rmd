@@ -868,44 +868,44 @@ df_waterlevel <- df_waterlevel %>%
 # -----------------------------
 df_jungfrau <- df_jungfrau %>%
   rename(
-    observed_jungfrau = observed,
+    remainder_jungfrau = remainder,
     trend_jungfrau = trend,
     seasonal_jungfrau = seasonal,
-    remainder_jungfrau = remainder
+    observed_jungfrau = observed
   )
 
 df_glacier <- df_glacier %>%
   rename(
-    mass_balance_glacier = mass_balance_monthly,
+    remainder_glacier = stochastic,  # rename stochastic -> remainder
     trend_glacier = trend,
     seasonal_glacier = seasonal,
     deterministic_glacier = deterministic,
-    stochastic_glacier = stochastic
+    mass_balance_glacier = mass_balance_monthly
   )
 
 df_waterlevel <- df_waterlevel %>%
   rename(
-    waterlevel = waterlevel_m,
+    remainder_waterlevel = stochastic,  # rename stochastic -> remainder
     trend_waterlevel = trend,
     seasonal_waterlevel = seasonal,
     deterministic_waterlevel = deterministic,
-    stochastic_waterlevel = stochastic
+    waterlevel = waterlevel_m
   )
 
 df_waterdischarge <- df_waterdischarge %>%
   rename(
-    waterdischarge = Original,
+    remainder_waterdischarge = Remainder,
     trend_waterdischarge = Trend,
     seasonal_waterdischarge = Seasonal,
-    remainder_waterdischarge = Remainder
+    waterdischarge = Original
   )
 
 df_precipitation <- df_precipitation %>%
   rename(
-    precipitation = Original,
+    remainder_precipitation = Remainder,
     trend_precipitation = Trend,
     seasonal_precipitation = Seasonal,
-    remainder_precipitation = Remainder
+    precipitation = Original
   )
 
 # -----------------------------
@@ -922,19 +922,19 @@ df_merged <- df_jungfrau %>%
 # 5) Select overlapping date range
 # -----------------------------
 start_overlap <- max(
-  min(df_merged$Date[!is.na(df_merged$observed_jungfrau)]),
-  min(df_merged$Date[!is.na(df_merged$mass_balance_glacier)]),
-  min(df_merged$Date[!is.na(df_merged$waterlevel)]),
-  min(df_merged$Date[!is.na(df_merged$waterdischarge)]),
-  min(df_merged$Date[!is.na(df_merged$precipitation)])
+  min(df_merged$Date[!is.na(df_merged$remainder_jungfrau)]),
+  min(df_merged$Date[!is.na(df_merged$remainder_glacier)]),
+  min(df_merged$Date[!is.na(df_merged$remainder_waterlevel)]),
+  min(df_merged$Date[!is.na(df_merged$remainder_waterdischarge)]),
+  min(df_merged$Date[!is.na(df_merged$remainder_precipitation)])
 )
 
 end_overlap <- min(
-  max(df_merged$Date[!is.na(df_merged$observed_jungfrau)]),
-  max(df_merged$Date[!is.na(df_merged$mass_balance_glacier)]),
-  max(df_merged$Date[!is.na(df_merged$waterlevel)]),
-  max(df_merged$Date[!is.na(df_merged$waterdischarge)]),
-  max(df_merged$Date[!is.na(df_merged$precipitation)])
+  max(df_merged$Date[!is.na(df_merged$remainder_jungfrau)]),
+  max(df_merged$Date[!is.na(df_merged$remainder_glacier)]),
+  max(df_merged$Date[!is.na(df_merged$remainder_waterlevel)]),
+  max(df_merged$Date[!is.na(df_merged$remainder_waterdischarge)]),
+  max(df_merged$Date[!is.na(df_merged$remainder_precipitation)])
 )
 
 df_merged_overlap <- df_merged %>%
@@ -943,12 +943,11 @@ df_merged_overlap <- df_merged %>%
 # -----------------------------
 # 6) Convert to multivariate ts object
 # -----------------------------
-# Select only the stationary/stochastic components
 df_ts <- df_merged_overlap %>%
   select(
     remainder_jungfrau,
-    stochastic_glacier,
-    stochastic_waterlevel,
+    remainder_glacier,
+    remainder_waterlevel,
     remainder_waterdischarge,
     remainder_precipitation
   )
@@ -973,53 +972,27 @@ saveRDS(ts_multivariate, "../data/processed/ts_multivariate.rds")
 ## Cross-Correlation Analysis
 To investigate potential linear relationships between the different time series, we use the cross-correlation function (ccf). For this we only need the stationary remainder components of each time series, since we want to avoid spurious correlations caused by trends and seasonal components.
 
-<u>**Create dataframe for Cross-Correlation Analysis**</u>
-```{r dataframe_ccf, include = TRUE, warning=FALSE, message=FALSE}
-# select the columns relevant for cross-correlation analysis
-df_ccf <- df_merged_overlap %>%
-  select(
-    Date,
-    remainder_jungfrau,
-    remainder_precipitation,
-    stochastic_glacier,
-    stochastic_waterlevel
-  )
-# convert back to time series objects
-# Number of observations
-n <- nrow(df_ccf)
-# Create time series objects (monthly frequency)
-# Example: temperature and glacier mass balance
-start_year <- year(min(df_ccf$Date))
-start_month <- month(min(df_ccf$Date))
-
-# Create monthly time series objects
-temp_ts <- ts(df_ccf$remainder_jungfrau,
-              start = c(start_year, start_month),
-              frequency = 12)
-
-glacier_ts <- ts(df_ccf$stochastic_glacier,
-                 start = c(start_year, start_month),
-                 frequency = 12)
-precip_ts <- ts(df_ccf$remainder_precipitation,
-                start = c(start_year, start_month),
-                frequency = 12)
-
-waterlevel_ts <- ts(df_ccf$stochastic_waterlevel,
-                    start = c(start_year, start_month),
-                    frequency = 12)
-```
-
-When looking at the output of the cross-correlation function between Jungfraujoch temperature and glacier mass balance the correlations are very weak (|r| < 0.3), indicating little to no relationship between the two variables. At a first glance this result surprised us. Yet when considering that the glacier mass balance data originally was bi-annually and we interpolated it to monthly values, the weak correlation became understandable. With the interpolation to monthly values the glacier mass balance data was artificially flattened making it impossible to find any relationship with temperature. The same argumentation applies to the cross-correlation function between glacier mass balance the waterlevel of the river Massa.
-
+When looking at the output of the cross-correlation function between Jungfraujoch temperature and glacier mass balance the correlations are very weak (|r| < 0.3), indicating little to no relationship between the two variables. At a first glance this result surprised us. Yet considering that the glaicer mass balance data had been transformed to show change from year to year (by differencing with a lag of 12), this finding made sense. Glaciers react slowly and mainly to long-term seasonal and yearly patterns, not to short monthly changes. Because the two datasets were on different time scales (monthly temperature and annually glacier mass balance), it was not possible to detect a direct correlation between them.
 <u>**CCF Jungfraujoch Temperature & Glacier Mass Balance**</u>
 ```{r ccf_jungfraujoch_temperature_glacier_mass_balance, include = TRUE, warning=FALSE, message=FALSE}
-temp_scaled <- scale(temp_ts)
-glacier_scaled <- scale(glacier_ts)
-plot(temp_scaled, type="l", col="orange", lwd=2, ylab="Scaled value", xlab="Time")
-lines(glacier_scaled, col="blue", lwd=2)
+plot(ts_multivariate[, "remainder_jungfrau"], type="l", col="orange", lwd=2, ylab="Scaled value", xlab="Time")
+lines(ts_multivariate[, "remainder_glacier"], col="blue", lwd=2)
 legend("topright", legend=c("Temperature Jungfraujoch", "Glacier Mass Balance"), col=c("orange","blue"), lty=1)
-ccf(glacier_ts, temp_ts) # temperature leads
-ccf(temp_ts, glacier_ts) # glacier leads
+
+# Set 1x2 layout and increase top margin
+par(mfrow = c(1, 2), mar = c(4, 4, 5, 1)) # bottom, left, top, right
+
+# CCF: Glacier leads Temperature
+ccf(ts_multivariate[, 2], ts_multivariate[, 1],
+    main = "Glacier vs Temperature")
+
+# CCF: Temperature leads Glacier
+ccf(ts_multivariate[, 1], ts_multivariate[, 2],
+    main = "Temperature vs Glacier")
+
+
+# Reset plotting parameters
+par(mfrow = c(1, 1), mar = c(5, 4, 4, 2) + 0.1)
 ```
 
 <u>**CCF Glacier Mass Balance & Massa Waterlevel**</u>
