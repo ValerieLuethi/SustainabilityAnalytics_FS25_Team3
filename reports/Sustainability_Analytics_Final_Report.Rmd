@@ -248,6 +248,9 @@ df_glacier <- df_glacier %>%
                 ~ as.Date(.x, format = "%d.%m.%Y")))
 ## check for NAs
 colSums(is.na(df_glacier))
+
+# create time series object for annual glacier mass balance
+
 ```
 
 In order to perform correlation analysis, the bi-annual mass balance values were extrapolated to monthly values using weighted averages derived from the Jungfraujoch temperature data. 
