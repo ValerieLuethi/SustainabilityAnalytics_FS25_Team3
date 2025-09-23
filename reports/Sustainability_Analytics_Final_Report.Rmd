@@ -197,6 +197,32 @@ df_jungfraujoch_reduced <- df_jungfraujoch %>%
 colnames(df_jungfraujoch_reduced) <- c('station_abbr', 'reference_timestamp', 'temp_mean_C')
 # check for NAs
 colSums(is.na(df_jungfraujoch_reduced)) # no NAs
+# create time series object
+# temp_mean monthly series
+ts_jungfraujoch <- ts(df_jungfraujoch_reduced$temp_mean_C,
+                      start = c(1933, 1),
+                      end = c(1933 + (nrow(df_jungfraujoch_reduced)-1) %/% 12,
+                              (nrow(df_jungfraujoch_reduced)-1) %% 12 + 1),
+                      frequency = 12)
+
+```
+
+<u>**jungfraujoch aggreagate to annual data**</u>
+```{r jungfraujoch_aggregate_annual_mean, include = TRUE}
+# create a year column
+df_jungfraujoch_year <- df_jungfraujoch_reduced %>%
+  mutate(Year = year(reference_timestamp))
+
+# aggregate to annual mean
+df_jungfraujoch_annual <- df_jungfraujoch_year %>%
+  group_by(station_abbr, Year) %>%
+  summarise(temp_mean_C = mean(temp_mean_C, na.rm = TRUE), .groups = "drop")
+
+# convert to ts object
+ts_jungfraujoch_annual <- ts(df_jungfraujoch_annual$temp_mean_C,
+                             start = min(df_jungfraujoch_annual$Year),
+                             end = max(df_jungfraujoch_annual$Year),
+                             frequency = 1)
 ```
 
 ## Glacier
@@ -508,6 +534,22 @@ rain_ts <- ts(df_rain$rhs150m0,
               frequency = 12)   # 12 month per year
 ```
 
+<u>**brig rain annual aggregation**</u>
+```{r brig_rain_annual aggregation, include = TRUE}
+# create year column
+df_rain_annual <- df_rain %>%
+  mutate(Year = year(Date)) %>%
+  group_by(Year) %>%
+  summarise(
+    precipitation_mm = sum(rhs150m0, na.rm = TRUE), # annual total
+    .groups = "drop"
+  )
+# create annual time series
+rain_ts_annual <- ts(df_rain_annual$precipitation_mm,
+                     start = min(df_rain_annual$Year),
+                     frequency = 1) 
+```
+
 
 
 # Exploratory Data Analysis (Vani)
@@ -548,14 +590,6 @@ The ACF shows a strong seasonal pattern reflecting the annual temperature cycle.
 
 <u>**Jungfraujoch ACF and PACF**</u>
 ```{r jungfraujoch_temperature_acf_pacf, include = TRUE}
-# create time series object
-# temp_mean monthly series
-ts_jungfraujoch <- ts(df_jungfraujoch_reduced$temp_mean_C,
-                      start = c(1933, 1),
-                      end = c(1933 + (nrow(df_jungfraujoch_reduced)-1) %/% 12,
-                              (nrow(df_jungfraujoch_reduced)-1) %% 12 + 1),
-                      frequency = 12)
-
 # acf and pacf
 acf(ts_jungfraujoch) # acf indicates seasonality
 pacf(ts_jungfraujoch) # damped sinusoid
@@ -965,7 +999,6 @@ ts_multivariate <- ts(df_ts,
 write.csv(df_merged_overlap, "../data/processed/df_merged.csv", row.names = FALSE)
 saveRDS(df_merged_overlap, "../data/processed/df_merged.rds")
 saveRDS(ts_multivariate, "../data/processed/ts_multivariate.rds")
-
 ```
 # Modelling
 
