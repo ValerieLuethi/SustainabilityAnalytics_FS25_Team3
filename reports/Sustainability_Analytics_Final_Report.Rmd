@@ -692,31 +692,6 @@ The time series were checked for stationarity by inspecting their Autocorrelatio
 
 To formally assess the stationarity of the time series, we applied the Augmented Dickey-Fuller (ADF) test to the original series as well as to the remainder components obtained from multiple STL decompositions using varying seasonal (s.window) and trend (t.window) smoothing parameters. The ADF test consistently rejected the null hypothesis, indicating that both the raw series and the STL residuals can be considered stationary. Given the uniformly significant results, we relied primarily on visual inspection of the ACF and PACF plots of the remainder components to confirm the effective removal of seasonal and trend components and to ensure minimal autocorrelation in the residual structure.
 
-## Glacier Mass Balance
-
-# Annual glacier mass balance
-Visible downward trend but ACF and PACF indicate stationarity. Since we are interested in the long-term decline of the glacier mass balance we will include the trend in the ARIMAX model.
-<u>**Glacier mass balance annually ACF and PACF**</u>
-```{r glacier_annual_mass_balance_acf_pacf, include = TRUE}
-# plot
-plot(ts_glacier_annually)
-# ACF and PACF
-par(mfrow=c(1,2))
-acf(ts_glacier_annually)
-pacf(ts_glacier_annually)
-# adf
-adf.test(ts_glacier_annually)
-# KPSS test (null hypothesis = stationary)
-kpss.test(ts_glacier_annually)
-
-# Also check visually for trend
-plot(ts_glacier_annually, main="Glacier Mass Balance Over Time")
-abline(lm(ts_glacier_annually ~ time(ts_glacier_annually)), col="red")
-
-# Check if there's a significant trend
-summary(lm(ts_glacier_annually ~ time(ts_glacier_annually)))
-```
-
 ## Temperature Jungfraujoch
 
 ### Annual mean temperature
@@ -823,7 +798,33 @@ saveRDS(df_jungfraujoch_processed, "../data/processed/jungfraujoch_temperature.r
 
 ## Glacier
 
-### Differencing 
+
+## Glacier Mass Balance
+
+# Annual glacier mass balance
+Visible downward trend but ACF and PACF indicate stationarity. Since we are interested in the long-term decline of the glacier mass balance we will include the trend in the ARIMAX model.
+<u>**Glacier mass balance annually ACF and PACF**</u>
+```{r glacier_annual_mass_balance_acf_pacf, include = TRUE}
+# plot
+plot(ts_glacier_annually)
+# ACF and PACF
+par(mfrow=c(1,2))
+acf(ts_glacier_annually)
+pacf(ts_glacier_annually)
+# adf
+adf.test(ts_glacier_annually)
+# KPSS test (null hypothesis = stationary)
+kpss.test(ts_glacier_annually)
+
+# Also check visually for trend
+plot(ts_glacier_annually, main="Glacier Mass Balance Over Time")
+abline(lm(ts_glacier_annually ~ time(ts_glacier_annually)), col="red")
+
+# Check if there's a significant trend
+summary(lm(ts_glacier_annually ~ time(ts_glacier_annually)))
+```
+
+### Monthly glacier mass balance
 
 ```{r glacier_differencing, include = TRUE}
 
