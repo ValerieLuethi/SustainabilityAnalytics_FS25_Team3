@@ -1444,20 +1444,6 @@ par(mfrow = c(1, 1), mar = c(5, 4, 4, 2) + 0.1)
 ```{r arima_glacier_mass_balance, include = TRUE, warning=FALSE, message=FALSE}
 # determine ARIMA order
 auto.arima(ts_glacier_aligned, stationary=TRUE, seasonal=FALSE)
-# Fit ARIMA(0,0,3) (MA(3))
-fit_ma3 <- Arima(ts_glacier_aligned, order = c(0,0,3), include.mean = TRUE)
-summary(fit_ma3)
-# check residuals
-checkresiduals(fit_ma3)
-# ACF and PACF of residuals
-par(mfrow=c(2,1))
-acf(residuals(fit_ma3))
-pacf(residuals(fit_ma3))
-# forecast
-h <- 10 # forecast horizon in years
-fc_ma3 <- forecast(fit_ma3, h = h)
-autoplot(fc_ma3) + ggtitle("ARIMA(0,0,3) forecast: Glacier mass balance")
-print(fc_ma3)   # view mean and intervals
 ```
 <u>**ARIMAX Glacier Model**</u>
 ```{r arimax_glacier_model, include = TRUE, warning=FALSE, message=FALSE}
@@ -1495,6 +1481,37 @@ legend("topright", c("Actual", "Fitted"), col=c("black", "red"), lty=1)
 forecast(arimax_glacier, h=5, 
          xreg=cbind(tail(temp_lag1_data, 5), tail(precip_data, 5)))
 ```
+<u>**Forecast Glacier Model**</u>
+```{r forecast_glacier_model, include = TRUE, warning=FALSE, message=FALSE}
+# Forecast temperature
+temp_model <- auto.arima(ts_temp_aligned)
+h <- 5  # number of steps ahead to forecast
+temp_forecast <- forecast(temp_model, h = h)
+future_temp <- temp_forecast$mean
+# Temperature forecast
+plot(temp_forecast, main = "Temperature Forecast", xlab = "Time", ylab = "Temperature")
+
+# Forecast precipitation
+precip_model <- auto.arima(ts_precip_aligned)
+precip_forecast <- forecast(precip_model, h = h)
+future_precip <- precip_forecast$mean
+# Precipitation forecast
+plot(precip_forecast, main = "Precipitation Forecast", xlab = "Time", ylab = "Precipitation")
+
+# lagged temperature for forecast: use last observed temp for first step
+last_temp <- tail(ts_temp_aligned, 1)
+future_temp_lag1 <- c(last_temp, future_temp[-length(future_temp)])
+
+# combine regressors
+future_xreg <- cbind(future_temp_lag1, future_precip)
+
+forecast_glacier <- forecast(arimax_glacier, h = h, xreg = future_xreg)
+
+# Inspect forecast
+print(forecast_glacier)
+plot(forecast_glacier)
+```
+
 Glacier Balance(t) = -2372.17 - 270.95×Temperature(t-1) - 0.018×Precipitation(t) + MA errors
 - 1°C warming in previous year → 271 mm w.e. additional mass loss
 - Precipitation doesn't significantly affect annual balance
