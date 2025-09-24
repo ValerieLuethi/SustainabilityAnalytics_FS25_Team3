@@ -1438,7 +1438,67 @@ ccf(precipitation_scaled, waterdischarge_scaled,
 # Reset plotting parameters
 par(mfrow = c(1, 1), mar = c(5, 4, 4, 2) + 0.1)
 ```
+## ARIMA
 
+<u>**ARIMA Glacier Mass Balance**</u>
+```{r arima_glacier_mass_balance, include = TRUE, warning=FALSE, message=FALSE}
+# determine ARIMA order
+auto.arima(ts_glacier_aligned, stationary=TRUE, seasonal=FALSE)
+# Fit ARIMA(0,0,3) (MA(3))
+fit_ma3 <- Arima(ts_glacier_aligned, order = c(0,0,3), include.mean = TRUE)
+summary(fit_ma3)
+# check residuals
+checkresiduals(fit_ma3)
+# ACF and PACF of residuals
+par(mfrow=c(2,1))
+acf(residuals(fit_ma3))
+pacf(residuals(fit_ma3))
+# forecast
+h <- 10 # forecast horizon in years
+fc_ma3 <- forecast(fit_ma3, h = h)
+autoplot(fc_ma3) + ggtitle("ARIMA(0,0,3) forecast: Glacier mass balance")
+print(fc_ma3)   # view mean and intervals
+```
+<u>**ARIMAX Glacier Model**</u>
+```{r arimax_glacier_model, include = TRUE, warning=FALSE, message=FALSE}
+# create lagged temperature ts (ccf -> lag 1 significant)
+temp_lag1 <- stats::lag(ts_temp_aligned, -1)
+# remove first observation because of lagging
+glacier_model_data <- ts_glacier_aligned[-1]
+temp_lag1_data <- temp_lag1[-length(temp_lag1)]
+precip_data <- ts_precip_aligned[-1]
+
+# ARIMAX
+arimax_glacier <- Arima(glacier_model_data,
+                        order = c(0,0,3), 
+                        xreg = cbind(temp_lag1_data, precip_data))
+# check model
+summary(arimax_glacier)
+```
+<u>**ARIMAX Glacier Model Diagnostics**</u>
+```{r arimax_glacier_model_diagnostics, include = TRUE, warning=FALSE, message=FALSE}
+# check residuals
+checkresiduals(arimax_glacier)
+# ACF and PACF of residuals
+par(mfrow=c(2,1))
+acf(residuals(arimax_glacier))
+pacf(residuals(arimax_glacier))
+# Model fit statistics
+AIC(arimax_glacier)
+accuracy(arimax_glacier)
+# Plot fitted vs actual
+plot(glacier_model_data, main="Glacier Balance: Actual vs Fitted")
+lines(fitted(arimax_glacier), col="red")
+legend("topright", c("Actual", "Fitted"), col=c("black", "red"), lty=1)
+
+# Forecast capability test
+forecast(arimax_glacier, h=5, 
+         xreg=cbind(tail(temp_lag1_data, 5), tail(precip_data, 5)))
+```
+Glacier Balance(t) = -2372.17 - 270.95×Temperature(t-1) - 0.018×Precipitation(t) + MA errors
+- 1°C warming in previous year → 271 mm w.e. additional mass loss
+- Precipitation doesn't significantly affect annual balance
+- Glacier has 1-year climate memory
 
 ## Extreme Value Theory (EVT) {#EVT_Massa_Report}
 
