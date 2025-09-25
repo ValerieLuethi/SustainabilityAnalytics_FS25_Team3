@@ -801,7 +801,7 @@ saveRDS(df_jungfraujoch_processed, "../data/processed/jungfraujoch_temperature.r
 
 ## Glacier Mass Balance
 
-# Annual glacier mass balance
+### Annual glacier mass balance
 Visible downward trend but ACF and PACF indicate stationarity. Since we are interested in the long-term decline of the glacier mass balance we will include the trend in the ARIMAX model.
 <u>**Glacier mass balance annually ACF and PACF**</u>
 ```{r glacier_annual_mass_balance_acf_pacf, include = TRUE}
@@ -953,44 +953,44 @@ pacf(remainder_waterlevel, main = "PACF - STL Remainder")
 
 ### TESTING s.window and t.window
 #s.window=13, t.window=default
-stl_1 <- stl(waterlevel_ts, s.window = 13)
-plot(stl_1)
-
-remainder_stl1 <- stl_1$time.series[,"remainder"]
-adf.test(remainder_stl1) # p-value 0.01
-acf(remainder_stl1, main = "ACF - STL Remainder")
-pacf(remainder_stl1, main = "PACF - STL Remainder")
-par(mfrow = c(1, 1))
-
-#s.window=13, t.window=121
-stl_2 <- stl(waterlevel_ts, s.window = 13, t.window = 121)
-plot(stl_2)
-
-remainder_stl2 <- stl_2$time.series[,"remainder"]
-adf.test(remainder_stl2) # p-value 0.01
-acf(remainder_stl2, main = "ACF - STL Remainder")
-pacf(remainder_stl2, main = "PACF - STL Remainder")
-par(mfrow = c(1, 1))
-
-#s.window="periodic", t.window=121
-stl_3 <- stl(waterlevel_ts, s.window = "periodic", t.window = 121)
-plot(stl_3)
-
-remainder_stl3 <- stl_3$time.series[,"remainder"]
-adf.test(remainder_stl3) # p-value 0.01
-acf(remainder_stl3, main = "ACF - STL Remainder")
-pacf(remainder_stl3, main = "PACF - STL Remainder")
-par(mfrow = c(1, 1))
-
-#s.window="periodic", t.window=121
-stl_4 <- stl(waterlevel_ts, s.window = 35)
-plot(stl_4)
-
-remainder_stl4 <- stl_4$time.series[,"remainder"]
-adf.test(remainder_stl4) # p-value 0.01
-acf(remainder_stl4, main = "ACF - STL Remainder")
-pacf(remainder_stl4, main = "PACF - STL Remainder")
-par(mfrow = c(1, 1))
+# stl_1 <- stl(waterlevel_ts, s.window = 13)
+# plot(stl_1)
+# 
+# remainder_stl1 <- stl_1$time.series[,"remainder"]
+# adf.test(remainder_stl1) # p-value 0.01
+# acf(remainder_stl1, main = "ACF - STL Remainder")
+# pacf(remainder_stl1, main = "PACF - STL Remainder")
+# par(mfrow = c(1, 1))
+# 
+# #s.window=13, t.window=121
+# stl_2 <- stl(waterlevel_ts, s.window = 13, t.window = 121)
+# plot(stl_2)
+# 
+# remainder_stl2 <- stl_2$time.series[,"remainder"]
+# adf.test(remainder_stl2) # p-value 0.01
+# acf(remainder_stl2, main = "ACF - STL Remainder")
+# pacf(remainder_stl2, main = "PACF - STL Remainder")
+# par(mfrow = c(1, 1))
+# 
+# #s.window="periodic", t.window=121
+# stl_3 <- stl(waterlevel_ts, s.window = "periodic", t.window = 121)
+# plot(stl_3)
+# 
+# remainder_stl3 <- stl_3$time.series[,"remainder"]
+# adf.test(remainder_stl3) # p-value 0.01
+# acf(remainder_stl3, main = "ACF - STL Remainder")
+# pacf(remainder_stl3, main = "PACF - STL Remainder")
+# par(mfrow = c(1, 1))
+# 
+# #s.window="periodic", t.window=121
+# stl_4 <- stl(waterlevel_ts, s.window = 35)
+# plot(stl_4)
+# 
+# remainder_stl4 <- stl_4$time.series[,"remainder"]
+# adf.test(remainder_stl4) # p-value 0.01
+# acf(remainder_stl4, main = "ACF - STL Remainder")
+# pacf(remainder_stl4, main = "PACF - STL Remainder")
+# par(mfrow = c(1, 1))
 
 #s.window=35, t.window=121
 stl_5 <- stl(waterlevel_ts, s.window = 35, t.window=121)
@@ -1226,12 +1226,16 @@ saveRDS(ts_multivariate, "../data/processed/ts_multivariate.rds")
 ```
 # Modelling
 
-## Cross-Correlation Analysis
+## Climate and Glacier Melt (annual data)
 
-### Yearly level
+First we examine the relationships between climate variables (mean temperature and total precipiation) with glaicer mass balance on a yearly level.
 
-<u>**CCF Annual Data**</u>
-```{r ccf_annual_data include = TRUE, warning=FALSE, message=FALSE}
+### Cross-Correlation Analysis (CCF)
+
+We use CCF to identify if there are any lagged effects of climate on glacier melt. This ensures that only variables with meaningful delayed influence will be included as predictors later on. 
+
+<u>**CCF Temperature and Glacier**</u>
+```{r ccf_temperature_glacier, include = TRUE, warning=FALSE, message=FALSE}
 # Find overlapping period
 common_start <- max(start(ts_jungfraujoch_annual)[1], start(ts_glacier_annually)[1], start(rain_ts_annual)[1])
 common_end <- min(end(ts_jungfraujoch_annual)[1], end(ts_glacier_annually)[1], end(rain_ts_annual)[1])
@@ -1241,21 +1245,139 @@ ts_temp_aligned <- window(ts_jungfraujoch_annual, start=common_start, end=common
 ts_glacier_aligned <- window(ts_glacier_annually, start=common_start, end=common_end)
 ts_precip_aligned <- window(rain_ts_annual, start=common_start, end=common_end)
 
-# Verify they're now the same length
-length(ts_temp_aligned)
-length(ts_glacier_aligned)
-length(ts_precip_aligned)
-
+par(mfrow = c(1, 2))
 # Temperature changes affecting glacier balance
-ccf(ts_temp_aligned, ts_glacier_aligned)
-# Precipitation affecting glacier balance  
-ccf(ts_precip_aligned, ts_glacier_aligned)
-# Also check reverse direction (less likely but good to verify)
-ccf(ts_glacier_aligned, ts_temp_aligned)
-ccf(ts_glacier_aligned, ts_precip_aligned)
+ccf(ts_glacier_aligned, ts_temp_aligned, main="Glacier & Temperature")
+ccf(ts_temp_aligned, ts_glacier_aligned, main="Temperature & Glacier")
+
+# create lagged temperature ts (ccf -> lag 1 significant)
+temp_lag1 <- stats::lag(ts_temp_aligned, -1)
+cor(ts_glacier_aligned, temp_lag1)
+```
+The left plot shows how changes in the glacier mass-balance depend on changes in the air temperature. The CCF is significant at lag 1. This indicates that the previous year's temperature affects the current glacier mass-balance. Since the relationship is negative, higher temperatures are associated with lower glacier mass-balance. Yet the correlation (r = -0.19) is weak, meaning temperature explains only a small part of the variability in glacier mass-balance. 
+
+<u>**CCF Precipitation and Glacier**</u>
+```{r ccf_precipitation_glacier, include = TRUE, warning=FALSE, message=FALSE}
+par(mfrow = c(1, 2))
+# Precipitation affecting glacier balance 
+ccf(ts_glacier_aligned, ts_precip_aligned, main="Glacier & Precipitation")
+ccf(ts_precip_aligned, ts_glacier_aligned, main="Precipitation & Glacier")
+cor(ts_glacier_aligned, ts_precip_aligned)
+```
+The left plot shows how changes in precipitations might affect glacier mass-balance. The CCF displays no significant lags, indicating no relationship between the two variables. The correlation (r = -0.04) is very weak as well. Since the precipitation was measured in the valley in Brig, it likely doesn't reflect the snow accumulation on the glacier due to substantial elevation differences. As glaciers respond primarily to seasonal snowfall (in winter), using total annual precipitation may not provide sufficient temporal resolution to capture this effect.
+
+### ARIMAX
+
+We chose to use an ARIMAX model to account for the autocorrelation in the glacier mass balance time series while incorporating temperature as an exogenous factor. This approach allows us to quantify and forecast the influence of climate variables on glacier mass changes over time. Total annual precipitation was not included, as it appeared to explain no variance in glacier mass-balance.
+
+We applied auto.arima() to the glacier mass-balance time series, suggesting an ARIMA(0,0,3) model. An exhaustive grid search over AR, differencing, and MA orders indicated ARIMA(2,1,2) had a slightly lower AIC, but the improvement was minimal. Given the simplicity and stationary residuals of the ARIMA(0,0,3) model, we chose it for further analysis.
+
+<u>**ARIMA Glacier Mass Balance**</u>
+```{r arima_glacier_mass_balance, include = TRUE, warning=FALSE, message=FALSE}
+# determine ARIMA order
+fit.auto <- auto.arima(ts_glacier_aligned, stationary=TRUE, seasonal=FALSE)
+summary(fit.auto)
+checkresiduals(fit.auto)
+
+best_aic <- Inf
+best_order <- c(0,0,0)
+
+for(p in 0:3){
+  for(d in 0:1){
+    for(q in 0:3){
+      fit <- try(Arima(ts_glacier_aligned, order = c(p,d,q)), silent=TRUE)
+      if(!inherits(fit, "try-error")){
+        if(AIC(fit) < best_aic){
+          best_aic <- AIC(fit)
+          best_order <- c(p,d,q)
+        }
+      }
+    }
+  }
+}
+best_order
+best_aic
 ```
 
-### Monthly level
+<u>**ARIMAX Glacier Model**</u>
+```{r arimax_glacier_model, include = TRUE, warning=FALSE, message=FALSE}
+# remove first observation because of lagging
+glacier_model_data <- ts_glacier_aligned[-1]
+temp_lag1_data <- temp_lag1[-length(temp_lag1)]
+
+# ARIMAX
+arimax_glacier <- Arima(glacier_model_data,
+                        order = c(0,0,3), 
+                        xreg = temp_lag1_data)
+# check model
+summary(arimax_glacier)
+```
+
+<u>**ARIMAX Glacier Model Diagnostics**</u>
+```{r arimax_glacier_model_diagnostics, include = TRUE, warning=FALSE, message=FALSE}
+# check residuals
+checkresiduals(arimax_glacier)
+# ACF and PACF of residuals
+par(mfrow=c(2,1))
+acf(residuals(arimax_glacier))
+pacf(residuals(arimax_glacier))
+# Model fit statistics
+AIC(arimax_glacier)
+accuracy(arimax_glacier)
+# Plot fitted vs actual
+plot(glacier_model_data, main="Glacier Balance: Actual vs Fitted")
+lines(fitted(arimax_glacier), col="red")
+legend("topright", c("Actual", "Fitted"), col=c("black", "red"), lty=1)
+
+# Forecast capability test
+forecast(arimax_glacier, h=5, 
+         xreg=cbind(tail(temp_lag1_data, 5), tail(precip_data, 5)))
+```
+
+<u>**Forecast Glacier Model**</u>
+```{r forecast_glacier_model, include = TRUE, warning=FALSE, message=FALSE}
+# Forecast temperature
+temp_model <- auto.arima(ts_temp_aligned)
+h <- 5  # number of steps ahead to forecast
+temp_forecast <- forecast(temp_model, h = h)
+future_temp <- temp_forecast$mean
+# Temperature forecast
+plot(temp_forecast, main = "Temperature Forecast", xlab = "Time", ylab = "Temperature")
+
+# Forecast precipitation
+precip_model <- auto.arima(ts_precip_aligned)
+precip_forecast <- forecast(precip_model, h = h)
+future_precip <- precip_forecast$mean
+# Precipitation forecast
+plot(precip_forecast, main = "Precipitation Forecast", xlab = "Time", ylab = "Precipitation")
+
+# lagged temperature for forecast: use last observed temp for first step
+last_temp <- tail(ts_temp_aligned, 1)
+future_temp_lag1 <- c(last_temp, future_temp[-length(future_temp)])
+
+# combine regressors
+future_xreg <- cbind(future_temp_lag1, future_precip)
+
+forecast_glacier <- forecast(arimax_glacier, h = h, xreg = future_xreg)
+
+# Inspect forecast
+print(forecast_glacier)
+plot(forecast_glacier)
+```
+
+$$
+\text{Glacier Balance}{(t)} = -2372.17 - 270.95 \times \text{Temperature}{(t-1)} - 0.018 \times \text{Precipitation}_{(t)} + \text{MA errors} - 1^\circ \text{C warming in previous year}
+$$
+
+
+- 1°C warming in previous year → 271 mm w.e. additional mass loss
+- Precipitation doesn't significantly affect annual balance
+- Glacier has 1-year climate memory
+
+## Climate-Glacier-River (monthly data)
+
+We now examine how climate-driven changes in glacier mass-balance affect the water level and discharge of Massa. 
+### Cross-Correlation Analysis (CCF)
 
 To investigate potential linear relationships between the different time series, we use the cross-correlation function (ccf). For this we only need the stationary remainder components of each time series, since we want to avoid spurious correlations caused by trends and seasonal components.
 
@@ -1438,84 +1560,8 @@ ccf(precipitation_scaled, waterdischarge_scaled,
 # Reset plotting parameters
 par(mfrow = c(1, 1), mar = c(5, 4, 4, 2) + 0.1)
 ```
-## ARIMA
+### ARIMAX
 
-<u>**ARIMA Glacier Mass Balance**</u>
-```{r arima_glacier_mass_balance, include = TRUE, warning=FALSE, message=FALSE}
-# determine ARIMA order
-auto.arima(ts_glacier_aligned, stationary=TRUE, seasonal=FALSE)
-```
-<u>**ARIMAX Glacier Model**</u>
-```{r arimax_glacier_model, include = TRUE, warning=FALSE, message=FALSE}
-# create lagged temperature ts (ccf -> lag 1 significant)
-temp_lag1 <- stats::lag(ts_temp_aligned, -1)
-# remove first observation because of lagging
-glacier_model_data <- ts_glacier_aligned[-1]
-temp_lag1_data <- temp_lag1[-length(temp_lag1)]
-precip_data <- ts_precip_aligned[-1]
-
-# ARIMAX
-arimax_glacier <- Arima(glacier_model_data,
-                        order = c(0,0,3), 
-                        xreg = cbind(temp_lag1_data, precip_data))
-# check model
-summary(arimax_glacier)
-```
-<u>**ARIMAX Glacier Model Diagnostics**</u>
-```{r arimax_glacier_model_diagnostics, include = TRUE, warning=FALSE, message=FALSE}
-# check residuals
-checkresiduals(arimax_glacier)
-# ACF and PACF of residuals
-par(mfrow=c(2,1))
-acf(residuals(arimax_glacier))
-pacf(residuals(arimax_glacier))
-# Model fit statistics
-AIC(arimax_glacier)
-accuracy(arimax_glacier)
-# Plot fitted vs actual
-plot(glacier_model_data, main="Glacier Balance: Actual vs Fitted")
-lines(fitted(arimax_glacier), col="red")
-legend("topright", c("Actual", "Fitted"), col=c("black", "red"), lty=1)
-
-# Forecast capability test
-forecast(arimax_glacier, h=5, 
-         xreg=cbind(tail(temp_lag1_data, 5), tail(precip_data, 5)))
-```
-<u>**Forecast Glacier Model**</u>
-```{r forecast_glacier_model, include = TRUE, warning=FALSE, message=FALSE}
-# Forecast temperature
-temp_model <- auto.arima(ts_temp_aligned)
-h <- 5  # number of steps ahead to forecast
-temp_forecast <- forecast(temp_model, h = h)
-future_temp <- temp_forecast$mean
-# Temperature forecast
-plot(temp_forecast, main = "Temperature Forecast", xlab = "Time", ylab = "Temperature")
-
-# Forecast precipitation
-precip_model <- auto.arima(ts_precip_aligned)
-precip_forecast <- forecast(precip_model, h = h)
-future_precip <- precip_forecast$mean
-# Precipitation forecast
-plot(precip_forecast, main = "Precipitation Forecast", xlab = "Time", ylab = "Precipitation")
-
-# lagged temperature for forecast: use last observed temp for first step
-last_temp <- tail(ts_temp_aligned, 1)
-future_temp_lag1 <- c(last_temp, future_temp[-length(future_temp)])
-
-# combine regressors
-future_xreg <- cbind(future_temp_lag1, future_precip)
-
-forecast_glacier <- forecast(arimax_glacier, h = h, xreg = future_xreg)
-
-# Inspect forecast
-print(forecast_glacier)
-plot(forecast_glacier)
-```
-
-Glacier Balance(t) = -2372.17 - 270.95×Temperature(t-1) - 0.018×Precipitation(t) + MA errors
-- 1°C warming in previous year → 271 mm w.e. additional mass loss
-- Precipitation doesn't significantly affect annual balance
-- Glacier has 1-year climate memory
 
 ## Extreme Value Theory (EVT) {#EVT_Massa_Report}
 
