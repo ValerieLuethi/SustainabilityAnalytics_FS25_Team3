@@ -51,8 +51,6 @@ library(zoo)      # for function 'yearmon'
 
 # Introduction
 
-<br><p style="font-size: 35px;"> Introduction </p><br>
-
 The United Nations declared the year 2025 as the “International Year of Glaciers Preservation” to raise global awareness about the critical role of glaciers in the climate system and the hydrological cycle and the economic, social and environmental impacts of the impending changes [UN](https://www.un-glaciers.org/en). In alignment with this initiative, this report provides a sustainability analysis of the Aletsch Glacier, the largest glacier in the Alps. The focus lies on the Glaciers impact on the Massa river and the downstream communities in the Canton of Valais, particularly the town of Brig.
 The Aletsch Glacier`s meltwater feeds the Massa River, which joins the Rhone near Brig. While increased melting can temporarily increase flood risk, the long-term loss of glacier mass threatens to reduce water availability, impacting both the local population and hydropower generation.
 
