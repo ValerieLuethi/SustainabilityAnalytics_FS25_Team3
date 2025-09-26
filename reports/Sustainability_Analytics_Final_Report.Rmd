@@ -33,6 +33,8 @@ output:
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
+Link to GitHub Repo: [SustainabilityAnalytics_FS25_Team3](https://github.com/ValerieLuethi/SustainabilityAnalytics_FS25_Team3)
+
 <u>**Loading R-Packages**</u>
 ```{r Loading_Packages, include=TRUE, warning=FALSE, message=FALSE, echo=TRUE, results='hide'}
 #Loading needed packages
