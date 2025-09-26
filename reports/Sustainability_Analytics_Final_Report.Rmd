@@ -33,6 +33,8 @@ output:
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
+Link to GitHub Repo: [SustainabilityAnalytics_FS25_Team3](https://github.com/ValerieLuethi/SustainabilityAnalytics_FS25_Team3)
+
 <u>**Loading R-Packages**</u>
 ```{r Loading_Packages, include=TRUE, warning=FALSE, message=FALSE, echo=TRUE, results='hide'}
 #Loading needed packages
@@ -50,8 +52,6 @@ library(zoo)      # for function 'yearmon'
 ```
 
 # Introduction
-
-<br><p style="font-size: 35px;"> Introduction </p><br>
 
 The United Nations declared the year 2025 as the “International Year of Glaciers Preservation” to raise global awareness about the critical role of glaciers in the climate system and the hydrological cycle and the economic, social and environmental impacts of the impending changes [UN](https://www.un-glaciers.org/en). In alignment with this initiative, this report provides a sustainability analysis of the Aletsch Glacier, the largest glacier in the Alps. The focus lies on the Glaciers impact on the Massa river and the downstream communities in the Canton of Valais, particularly the town of Brig.
 The Aletsch Glacier`s meltwater feeds the Massa River, which joins the Rhone near Brig. While increased melting can temporarily increase flood risk, the long-term loss of glacier mass threatens to reduce water availability, impacting both the local population and hydropower generation.
@@ -78,9 +78,9 @@ To answer this question, our analysis is divided into two components:
 
 - Extreme Value Theory (EVT): EVT will be used to quantify the probability of extreme events, such as flooding, providing critical information for climate risk assessment and the development of preparedness strategies.
 
-## Alignment with UN Sustainable Development Goals [SDGs](https://www.un.org/sustainabledevelopment/sustainable-development-goals/)
+## Alignment with UN Sustainable Development Goals (SDGs)
 
-This project contributes to several of the UN`s SDGs, particularly:
+This project contributes to several of the UN`s [SDGs](https://www.un.org/sustainabledevelopment/sustainable-development-goals/), particularly:
 
 -	SDG 13: Climate Action
 Modeling glacier and hydrological changes to inform climate risk reduction and resilience planning.
@@ -185,7 +185,8 @@ raw_brigrain <- read.csv('../data/raw/weather_rain_monthly_brig.csv', header=TRU
 ## Jungfraujoch Temperature
 The homogeneous data series from the Jungfraujoch climate station is available on demand via [MeteoSchweiz OpenData](https://www.meteoswiss.admin.ch/services-and-publications/service/open-data.html). The station is located 3571 meters above sea level and located in the Aletsch area. We were interested in the measurement of the homogeneous monthly mean temperature covering the time span from 01/01/1933 to 01/07/2025. The temperature in Celsius was measured 2 meters above ground.
 
-The raw Jungfraujoch weather data set was prepared by first converting the reference_timestamp column into a proper datetime format. Then the data set was reduced to the columns necessary for our analysis (station_abbr, reference_timestamp, temp_mean_C). For clarity columns were renamed. A check for missing values, confirmed that there were none. Finally a time series object of the mean temperature values was created, specifying the start and end dates as well as the monthly frequency. 
+The raw Jungfraujoch weather data set was prepared by first converting the reference_timestamp column into a proper datetime format. Then the data set was reduced to the columns necessary for our analysis (station_abbr, reference_timestamp, temp_mean_C). For clarity columns were renamed. A check for missing values, confirmed that there were none. Finally a time series object of the mean temperature values was created, specifying the start and end dates as well as the monthly frequency.
+
 <u>**data preparation for jungfraujoch**</u>
 ```{r jungfraujoch_temperature_data_preparation, include = TRUE}
 # convert timestamp to datetime format
@@ -423,6 +424,8 @@ waterlevel_ts <- ts(df_monthly$waterlevel_m,
 
 ### Average monthly water discharge
 
+Since water level measurements can be less precise, as it is influenced by the shape of the riverbed, we consider as well the water discharge, expressed in cubic meters per second (m³/s). This metric provides a more accurate representation of variations in the river’s actual water volume, whereas water level indicates the height of the water surface relative to sea level.
+
 <u>**Creating monthly average discharge for massa**</u>
 ```{r monthly_average_massa, include = TRUE}
 # calculation average monthly watervolume
@@ -445,6 +448,8 @@ ts_watervolume_monthly <- ts(df_massa_monthly$discharge_monthly_mean,
 ```
 
 ### Daily water discharge
+
+For the EVT (Extreme Value Theory) analysis, we use daily mean water discharge values. Other reports, as referenced in the chapter EVT, also rely on this metric, which allows for a meaningful comparison of our results.
 
 <u>**massa daily water discharge data preparation**</u>
 ```{r water_discharge_massa_preparation, include = TRUE}
@@ -483,6 +488,7 @@ df_massa_prep <- data.frame(
 ```
 
 ### Rhone River
+
 A parallel data cleaning and preparation pipeline was implemented for the Rhone River dataset, which shares the same source and structure. The raw Rhone dataset included daily measurements between January 1, 1981 and December 31, 2020.
 
 <u>**data preparation for river rhone**</u>
@@ -539,6 +545,8 @@ df_rhone %>%
 
 
 ## Brig Rain
+
+The Brig rain dataset provides homogeneous monthly total precipitation values in millimeters. The time series spans the period from 1961 to 2025, contains no missing values, and can therefore be directly converted into a time series object.
 
 <u>**data preparation for brig rain**</u>
 ```{r brig_rain_data_preparation, include = TRUE}
@@ -654,6 +662,7 @@ plot(
 )
 lines(lowess(ts_watervolume_monthly), col = "red", lwd = 3)
 ```
+
 Looking at the summary statistics, the skewed distribution (median = 3.53 m³/s, mean > median) indicates that discharge is low for much of the year, punctuated by high-flow events during the melt season.
 The plot of Monthly Average Water Discharge of the Massa River shows pronounced seasonal variation in water discharge, with sharp peaks during the summer months. This pattern reflects the strong influence of glacial melt on the river’s hydrology. The long-term trend (red line) suggests a modest increase in discharge over time, consistent with intensified glacial melting.
 
@@ -671,9 +680,11 @@ plot(
 )
 lines(lowess(rain_ts), col = "red", lwd = 3)
 ```
+
 Precipitation data for Brig reveal considerable short-term variability but no strong long-term trend. This relative stability indicates that changes in precipitation patterns are unlikely to explain observed changes in river levels. Other factors, such as glacier melt influenced by rising temperatures, may therefore play a more significant role.
 
 ## Implications
+
 Taken together, the exploratory findings suggest several interconnected impacts of climate change on Brig’s water resources:
 
   * The exploratory analysis suggests that rising temperatures accelerate glacier retreat, reducing long-term ice reserves.
@@ -688,6 +699,7 @@ These hypotheses form the basis for subsequent ARIMAX and EVT modelling, which a
   
 
 # Stationarity
+
 The time series were checked for stationarity by inspecting their Autocorrelation Functions (ACF) and Partial Autocorrelation Functions (PACF). To further investigate the structure of the data, we applied Seasonal-Trend decomposition using Loess (STL). STL separates the time series into trend, seasonal and remainder components, which is useful to identify and remove seasonality and trends before time series modelling. Different variations of the s.window parameter were tested to control the smoothness of the seasonal component. Additionaly the t.window parameter was used to control the smoothing of the trend component.
 
 To formally assess the stationarity of the time series, we applied the Augmented Dickey-Fuller (ADF) test to the original series as well as to the remainder components obtained from multiple STL decompositions using varying seasonal (s.window) and trend (t.window) smoothing parameters. The ADF test consistently rejected the null hypothesis, indicating that both the raw series and the STL residuals can be considered stationary. Given the uniformly significant results, we relied primarily on visual inspection of the ACF and PACF plots of the remainder components to confirm the effective removal of seasonal and trend components and to ensure minimal autocorrelation in the residual structure.
@@ -707,7 +719,9 @@ pacf(ts_jungfraujoch_annual)
 # adf
 adf.test(ts_jungfraujoch_annual)
 ```
+
 After differencing the ACF decays quickly. The PACF shows a mean reversion (negative partial autocorrelation) with a remaining AR process.
+
 <u>**Jungfraujoch annually decomposition**</u>
 ```{r jungfraujoch_annual_temperature_decomposition, include = TRUE}
 # differencing
@@ -723,6 +737,7 @@ plot(ts_temp_diff, main="Differenced Temperature")
 ```
 
 ### Monthly mean temperature
+
 The ACF shows a strong seasonal pattern reflecting the annual temperature cycle. The PACF indicates that monthly mean temperatures are influenced by the previous month (lag 1). Then shows a negative connection for the next few months (lags 2 to 6) and a positive connection again (lags 8 to 13). This is likely due to temperature changes following a seasonal pattern, where each month corresponds to a specific period (e.g. season).
 
 <u>**Jungfraujoch ACF and PACF**</u>
@@ -776,6 +791,7 @@ adf.test(remainder_37_121)
 ```
 
 For further modelling a data frame containing the components of the decomposed time series as well as the observed data was created and saved.
+
 <u>**Jungfraujoch create cleaned data frame**</u>
 ```{r jungfraujoch_temperature_clean_df, include = TRUE}
 # Extract components
@@ -802,7 +818,9 @@ saveRDS(df_jungfraujoch_processed, "../data/processed/jungfraujoch_temperature.r
 ## Glacier Mass Balance
 
 ### Annual glacier mass balance
+
 Visible downward trend but ACF and PACF indicate stationarity. Since we are interested in the long-term decline of the glacier mass balance we will include the trend in the ARIMAX model.
+
 <u>**Glacier mass balance annually ACF and PACF**</u>
 ```{r glacier_annual_mass_balance_acf_pacf, include = TRUE}
 # plot
@@ -843,6 +861,7 @@ The ADF test on the seasonally-differenced series strongly rejects a unit root s
 decomp <- stl(ts_seasonal, s.window = "periodic")
 autoplot(decomp)
 ```
+
 The STL decomposition of the differenced time series reveals clear evidence of non-stationarity. The trend component highlights long-term shifts (climate-driven changes), while the seasonal component shows a strong and highly regular annual cycle consistent with the natural melt–accumulation processes of glaciers. The remainder, which represents the unexplained component after removing trend and seasonality, fluctuates around zero and resembles white noise, although its variance appears to increase in recent decades, suggesting growing irregularity and more extreme events.
 
 ```{r glacier_remainders, include = TRUE}
@@ -854,12 +873,15 @@ par(mfrow=c(2,1))
 acf(residuals_stl, main="ACF of STL Residuals", na.action=na.pass)
 pacf(residuals_stl, main="PACF of STL Residuals", na.action=na.pass)
 ```
+
 The ACF and PACF of the STL residuals provide further confirmation: both show no significant autocorrelation at any lag, indicating that the systematic seasonal and trend-driven patterns have been effectively removed and that the residual component can be treated as stationary noise.
 
 ## Rainfall Brig
 
 ### Annual Precipitation
+
 The total annual precipiation already is stationary.
+
 <u>**Brig rain annual**</u>
 ```{r brig_rain_annual, include = TRUE}
 plot(rain_ts_annual)
@@ -1002,6 +1024,7 @@ acf(remainder_stl5, main = "ACF - STL Remainder")
 pacf(remainder_stl5, main = "PACF - STL Remainder")
 par(mfrow = c(1, 1))
 ```
+
 For further modelling a data frame containing the decomposed time series components alongside the original observations was created and saved. This structured dataset separates deterministic components (trend + seasonal) from stochastic variations (remainder).
 
 <u>**massa river stl_decompose**</u>
@@ -1034,12 +1057,19 @@ det_stoch <- data.frame(
 
 #### Monthly average discharge massa timeseries
 
+The original, non-decomposed time series exhibits a pronounced seasonal pattern, with values ranging from 0 to 70  m³/s. This outcome is not unexpected, as the previously analyzed monthly water levels of the Massa River reveal the same phenomenon, expressed in a different metric.
+
+
 <u>**plotting massa timeseries**</u>
 ```{r monthly_average_massa_timeseries, include = TRUE}
 plot(ts_watervolume_monthly, main = "Massa mean discharge volume in m³/s 1980 - 2020")
 ```
 
 #### Stationarity with stl
+
+For the decomposition of the water discharge values, we applied as well the STL function. 
+
+The most satisfactory results were obtained using an s.window of 24, which captures a seasonal trend with a two-year window, and a t.window of 365 to represent the long-term trend. With these settings, both the ACF and PACF display an abrupt cut at lag 1. The residuals appear random, although regular zero values remain, reflecting the winter season when no water discharge occurs. This effect could not be mitigated by the applied approach.
 
 <u>**Stationarity with stl approach**</u>
 ```{r stl_monthly_massa, include = TRUE}
@@ -1081,6 +1111,7 @@ head(massa_monthly_mean_stl)  # for checking
 
 
 # Merge Data
+
 For convenience for further modelling we merged the preprocessed datasets jungfraujoch_temperature, glacier_mass_balance, massa_waterlevel and brig_rain by the date column. Due to different start and end dates we chose to keep the overlapping time period (01/01/1981 to 01/12/2020) in order to get a complete dataset.
 
 <u>**Merge data*</u>
@@ -1224,6 +1255,7 @@ write.csv(df_merged_overlap, "../data/processed/df_merged.csv", row.names = FALS
 saveRDS(df_merged_overlap, "../data/processed/df_merged.rds")
 saveRDS(ts_multivariate, "../data/processed/ts_multivariate.rds")
 ```
+
 # Modelling
 
 ## Climate and Glacier Melt (annual data)
@@ -1254,6 +1286,7 @@ ccf(ts_temp_aligned, ts_glacier_aligned, main="Temperature & Glacier")
 temp_lag1 <- stats::lag(ts_temp_aligned, -1)
 cor(ts_glacier_aligned, temp_lag1)
 ```
+
 The left plot shows how changes in the glacier mass-balance depend on changes in the air temperature. The CCF is significant at lag 1. This indicates that the previous year's temperature affects the current glacier mass-balance. Since the relationship is negative, higher temperatures are associated with lower glacier mass-balance. Yet the correlation (r = -0.19) is weak, meaning temperature explains only a small part of the variability in glacier mass-balance. 
 
 <u>**CCF Precipitation and Glacier**</u>
@@ -1264,6 +1297,7 @@ ccf(ts_glacier_aligned, ts_precip_aligned, main="Glacier & Precipitation")
 ccf(ts_precip_aligned, ts_glacier_aligned, main="Precipitation & Glacier")
 cor(ts_glacier_aligned, ts_precip_aligned)
 ```
+
 The left plot shows how changes in precipitations might affect glacier mass-balance. The CCF displays no significant lags, indicating no relationship between the two variables. The correlation (r = -0.04) is very weak as well. Since the precipitation was measured in the valley in Brig, it likely doesn't reflect the snow accumulation on the glacier due to substantial elevation differences. As glaciers respond primarily to seasonal snowfall (in winter), using total annual precipitation may not provide sufficient temporal resolution to capture this effect.
 
 ### ARIMAX
@@ -1366,8 +1400,8 @@ plot(forecast_glacier)
 ```
 
 $$
-\text{Glacier Balance}(t) = -2380.9160 
-- 270.3527 \cdot \text{Temperature}(t-1) 
+\text{Glacier Balance}_t = -2380.9160 
+- 270.3527 \cdot \text{Temperature}_{t-1} 
 + \varepsilon_t 
 + 0.1237\,\varepsilon_{t-1} 
 - 0.0712\,\varepsilon_{t-2} 
@@ -1381,12 +1415,14 @@ $$
 
 ## Climate-Glacier-River (monthly data)
 
-We now examine how climate-driven changes in glacier mass-balance affect the water level and discharge of Massa. 
+We now examine how climate-driven changes in glacier mass-balance affect the water level and discharge of Massa.
+
 ### Cross-Correlation Analysis (CCF)
 
 To investigate potential linear relationships between the different time series, we use the cross-correlation function (ccf). For this we only need the stationary remainder components of each time series, since we want to avoid spurious correlations caused by trends and seasonal components.
 
 When looking at the output of the cross-correlation function between Jungfraujoch temperature and glacier mass balance the correlations are very weak (|r| < 0.3), indicating little to no relationship between the two variables. At a first glance this result surprised us. Yet considering that the glaicer mass balance data had been transformed to show change from year to year (by differencing with a lag of 12), this finding made sense. Glaciers react slowly and mainly to long-term seasonal and yearly patterns, not to short monthly changes. Because the two datasets were on different time scales (monthly temperature and annually glacier mass balance), it was not possible to detect a direct correlation between them. The same argumentation applies to the cross-correlation function between glacier mass balance the waterlevel of the river Massa.
+
 <u>**CCF Jungfraujoch Temperature & Glacier Mass Balance**</u>
 ```{r ccf_jungfraujoch_temperature_glacier_mass_balance, include = TRUE, warning=FALSE, message=FALSE}
 # Scale the two series and convert to numeric vectors
@@ -1488,6 +1524,7 @@ ccf(jungfrau_scaled, waterlevel_scaled,
 # Reset plotting parameters
 par(mfrow = c(1, 1), mar = c(5, 4, 4, 2) + 0.1)
 ```
+
 When we look at waterdischarge instead of waterlevel we see a strong correlation with temperature at lag 0 (within the same month). This indicates that the monthly waterdischarge of Massa responds directly and quickly to monthly temperature changes. With the waterdischarge increasing as temperatures rise, reflecting the immediate hydrological response to snow melt and glacier melt during warmer periods. Conversly, lower temperatures are associated with lower discharge due to reduced melt and freezing.
 
 <u>**CCF Jungfraujoch Temperature & Massa Waterdischarge**</u>
@@ -1541,6 +1578,7 @@ ccf(precipitation_scaled, waterlevel_scaled,
 # Reset plotting parameters
 par(mfrow = c(1, 1), mar = c(5, 4, 4, 2) + 0.1)
 ```
+
 <u>**CCF Precipitation Brig & Massa Waterdischarge**</u>
 ```{r ccf_precipitation_waterdischarge, include = TRUE, warning=FALSE, message=FALSE}
 # Scale the two series and convert to numeric vectors
@@ -1565,8 +1603,6 @@ ccf(precipitation_scaled, waterdischarge_scaled,
 # Reset plotting parameters
 par(mfrow = c(1, 1), mar = c(5, 4, 4, 2) + 0.1)
 ```
-### ARIMAX
-
 
 ## Extreme Value Theory (EVT) {#EVT_Massa_Report}
 
@@ -1734,12 +1770,17 @@ Our EVT analysis for the Massa River does not predict any extreme events approac
 
 However, as expected, our results differ from the BAG report, which predicts events of up to 150 m³/s (depending on the EVT method used) occurring approximately every 300 years. This difference is primarily due to the BAG analysis being based on daily maximum values, whereas our study uses daily mean values. Consequently, their approach is better suited for capturing the absolute extreme events. Nevertheless, even their estimated extremes remain well below the 450 m³/s design discharge that the Gibidum Dam was engineered to withstand.
 
-Based on these findings, we are confident that the extreme water discharges of the Massa River, as influenced by climate change and its effects on the Aletsch Glacier, do not pose a significant threat in terms of river flow volumes.
-
-What is not addressed in our analysis, however, is the impact of the glacier’s retreat and its associated counterpressure on the valley and surrounding rocks. This may destabilize the ground and trigger landslides, potentially affecting the structural integrity of the dam directly, or indirectly through debris avalanches. Events such as the glacier/rock collapse in Blatten in spring 2025 illustrate how these processes can lead to unpredictable natural disasters.
-
+What is not addressed in our EVT analysis, however, is the impact of the glacier’s retreat and its associated counterpressure on the valley and surrounding rocks. This may destabilize the ground and trigger landslides, potentially affecting the structural integrity of the dam directly, or indirectly through debris avalanches. Events such as the glacier/rock collapse in Blatten in spring 2025 illustrate how these processes can lead to unpredictable natural disasters.
 
 # Conclusion
+
+This report examined how climate change is reshaping the Aletsch Glacier and the Massa River that supports the town of Brig. By combining historical climate data, statistical forecasting, and extreme value theory, the analysis provides insights into future water availability and flood risk. 
+
+The results show that temperature is the main driver of glacier loss. Glacier mass balance reacts to the previous year’s temperature, meaning it has a one-year “climate memory.” The ARIMAX model quantifies this effect: each 1 °C rise in annual temperature leads to about 270 mm of extra glacier mass loss. Precipitation, as measured in the valley, has little influence. On a monthly scale, higher temperatures directly increase river discharge, showing the Massa reacts quickly to seasonal melt. 
+
+Extreme Value Theory indicates that, despite higher short-term flows, extreme discharges remain below the design limits of the Gibidum Dam. This means major flood risks are unlikely for Brig in the near future. The long-term retreat of the glacier, however, will reduce water storage and may destabilize surrounding slopes, increasing the risk of landslides or debris flows. For Brig and the Canton of Valais, this creates a dual challenge: managing higher seasonal flows now while preparing for eventual water scarcity as the glacier continues to shrink. 
+
+The forecasting framework developed in this report offers guidance for early-warning systems, hydropower planning, and adaptive land-use strategies. These findings strengthen the relevance of the UN Sustainable Development Goals by linking local glacier change to global climate action, clean energy, and sustainable water management. Climate adaptation is no longer a vague future goal but an urgent planning priority, requiring continued data collection, open stakeholder dialogue, and regular updates to forecasts to protect both people and alpine ecosystems.
 
 # Outlook
 
@@ -1756,6 +1797,12 @@ In this section, we look ahead to the future and describe next steps that can be
 
 # Disclaimer for AI
 
+In the preparation of this report, artificial intelligence (AI) tools were employed to support specific tasks. The following points outline the scope and manner of AI usage:
+
+- reformulation of text passages
+- support in R coding for data preparation, visualization and modeling
+
+The responsibility for the selection, verification, and interpretation of all information and results lies entirely with the authors.
 
 # Appendix
 
