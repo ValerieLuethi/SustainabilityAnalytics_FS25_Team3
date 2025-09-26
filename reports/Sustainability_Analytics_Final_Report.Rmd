@@ -1331,7 +1331,7 @@ legend("topright", c("Actual", "Fitted"), col=c("black", "red"), lty=1)
 
 # Forecast capability test
 forecast(arimax_glacier, h=5, 
-         xreg=cbind(tail(temp_lag1_data, 5), tail(precip_data, 5)))
+         xreg=cbind(tail(temp_lag1_data, 5))) # check interpretation
 ```
 
 <u>**Forecast Glacier Model**</u>
@@ -1345,18 +1345,18 @@ future_temp <- temp_forecast$mean
 plot(temp_forecast, main = "Temperature Forecast", xlab = "Time", ylab = "Temperature")
 
 # Forecast precipitation
-precip_model <- auto.arima(ts_precip_aligned)
-precip_forecast <- forecast(precip_model, h = h)
-future_precip <- precip_forecast$mean
+#precip_model <- auto.arima(ts_precip_aligned)
+#precip_forecast <- forecast(precip_model, h = h)
+#future_precip <- precip_forecast$mean
 # Precipitation forecast
-plot(precip_forecast, main = "Precipitation Forecast", xlab = "Time", ylab = "Precipitation")
+#plot(precip_forecast, main = "Precipitation Forecast", xlab = "Time", ylab = "Precipitation")
 
 # lagged temperature for forecast: use last observed temp for first step
 last_temp <- tail(ts_temp_aligned, 1)
 future_temp_lag1 <- c(last_temp, future_temp[-length(future_temp)])
 
 # combine regressors
-future_xreg <- cbind(future_temp_lag1, future_precip)
+future_xreg <- cbind(future_temp_lag1)
 
 forecast_glacier <- forecast(arimax_glacier, h = h, xreg = future_xreg)
 
@@ -1366,7 +1366,12 @@ plot(forecast_glacier)
 ```
 
 $$
-\text{Glacier Balance}{(t)} = -2372.17 - 270.95 \times \text{Temperature}{(t-1)} - 0.018 \times \text{Precipitation}_{(t)} + \text{MA errors} - 1^\circ \text{C warming in previous year}
+\text{Glacier Balance}(t) = -2380.9160 
+- 270.3527 \cdot \text{Temperature}(t-1) 
++ \varepsilon_t 
++ 0.1237\,\varepsilon_{t-1} 
+- 0.0712\,\varepsilon_{t-2} 
++ 0.4184\,\varepsilon_{t-3}
 $$
 
 
