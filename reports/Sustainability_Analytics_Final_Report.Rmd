@@ -1769,11 +1769,17 @@ Our EVT analysis for the Massa River does not predict any extreme events approac
 
 However, as expected, our results differ from the BAG report, which predicts events of up to 150 m³/s (depending on the EVT method used) occurring approximately every 300 years. This difference is primarily due to the BAG analysis being based on daily maximum values, whereas our study uses daily mean values. Consequently, their approach is better suited for capturing the absolute extreme events. Nevertheless, even their estimated extremes remain well below the 450 m³/s design discharge that the Gibidum Dam was engineered to withstand.
 
+What is not addressed in our EVT analysis, however, is the impact of the glacier’s retreat and its associated counterpressure on the valley and surrounding rocks. This may destabilize the ground and trigger landslides, potentially affecting the structural integrity of the dam directly, or indirectly through debris avalanches. Events such as the glacier/rock collapse in Blatten in spring 2025 illustrate how these processes can lead to unpredictable natural disasters.
+
 # Conclusion
 
-We can see in our analysis that the rising temperature affects the Aletsch Glacier in a negativ way. However based on the the findings of the conducted EVT, we are confident that the extreme water discharges of the Massa River, as influenced by climate change and its effects on the Aletsch Glacier, do not pose a significant threat in terms of river flow volumes for the Gibidum Dam, and therefore for the population of Brig.
+This report examined how climate change is reshaping the Aletsch Glacier and the Massa River that supports the town of Brig. By combining historical climate data, statistical forecasting, and extreme value theory, the analysis provides insights into future water availability and flood risk. 
 
-What is not addressed in our analysis, however, is the impact of the glacier’s retreat and its associated counterpressure on the valley and surrounding rocks. This may destabilize the ground and trigger landslides, potentially affecting the structural integrity of the dam directly, or indirectly through debris avalanches. Events such as the glacier/rock collapse in Blatten in spring 2025 illustrate how these processes can lead to unpredictable natural disasters.
+The results show that temperature is the main driver of glacier loss. Glacier mass balance reacts to the previous year’s temperature, meaning it has a one-year “climate memory.” The ARIMAX model quantifies this effect: each 1 °C rise in annual temperature leads to about 270 mm of extra glacier mass loss. Precipitation, as measured in the valley, has little influence. On a monthly scale, higher temperatures directly increase river discharge, showing the Massa reacts quickly to seasonal melt. Extreme Value Theory indicates that, despite higher short-term flows, extreme discharges remain below the design limits of the Gibidum Dam. 
+
+This means major flood risks are unlikely for Brig in the near future. The long-term retreat of the glacier, however, will reduce water storage and may destabilize surrounding slopes, increasing the risk of landslides or debris flows. For Brig and the Canton of Valais, this creates a dual challenge: managing higher seasonal flows now while preparing for eventual water scarcity as the glacier continues to shrink. 
+
+The forecasting framework developed in this report offers guidance for early-warning systems, hydropower planning, and adaptive land-use strategies. These findings strengthen the relevance of the UN Sustainable Development Goals by linking local glacier change to global climate action, clean energy, and sustainable water management. Climate adaptation is no longer a vague future goal but an urgent planning priority, requiring continued data collection, open stakeholder dialogue, and regular updates to forecasts to protect both people and alpine ecosystems.
 
 # Outlook
 
