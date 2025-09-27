@@ -171,7 +171,7 @@ For the analysis we used the following datasets:
 The [feature explanation](#Table_feature_exp) can be found in the appendix.
 
 <u>**Loading Data**</u>
-```{r loading_data, include= TRUE, echo=FALSE}
+```{r loading_data, include= TRUE, echo = TRUE, results = 'hide'}
 # Reading in data
 # for massa, rhone: why are the processed csv loaded instead of the raw data?
 raw_massa <- read.csv('../data/raw/massa_CAMELS_CH_obs_based_2161.csv', header=TRUE, sep=',', na.strings='-')
@@ -188,7 +188,7 @@ The homogeneous data series from the Jungfraujoch climate station is available o
 The raw Jungfraujoch weather data set was prepared by first converting the reference_timestamp column into a proper datetime format. Then the data set was reduced to the columns necessary for our analysis (station_abbr, reference_timestamp, temp_mean_C). For clarity columns were renamed. A check for missing values, confirmed that there were none. Finally a time series object of the mean temperature values was created, specifying the start and end dates as well as the monthly frequency.
 
 <u>**data preparation for jungfraujoch**</u>
-```{r jungfraujoch_temperature_data_preparation, include = TRUE, echo=FALSE}
+```{r jungfraujoch_temperature_data_preparation, include = TRUE, echo = TRUE, results = 'hide'}
 # convert timestamp to datetime format
 df_jungfraujoch <- raw_jungfraujoch %>%
   mutate(reference_timestamp = dmy_hm(reference_timestamp))
@@ -210,7 +210,7 @@ ts_jungfraujoch <- ts(df_jungfraujoch_reduced$temp_mean_C,
 ```
 
 <u>**jungfraujoch aggreagate to annual data**</u>
-```{r jungfraujoch_aggregate_annual_mean, include = TRUE, echo=FALSE}
+```{r jungfraujoch_aggregate_annual_mean, include = TRUE, echo = TRUE, results = 'hide'}
 # create a year column
 df_jungfraujoch_year <- df_jungfraujoch_reduced %>%
   mutate(Year = year(reference_timestamp))
@@ -233,7 +233,7 @@ The data is sourced from Glacier Monitoring in Switzerland (GLAMOS). Direct meas
 For clarity, unnecessary columns were removed and the others were renamed. We were interested in information specifically regarding "Grosser Aletschgletscher" hence the dataset was filtered to just the relevant rows. We converted the date columns into proper datetime format. A check for missing values, confirmed that there were none.
 
 <u>**data preparation for glacier**</u>
-```{r glacier_data_preparation, include = TRUE, echo=FALSE}
+```{r glacier_data_preparation, include = TRUE, echo = TRUE, results = 'hide'}
 ## remove unwanted columns
 df_glacier <- raw_glacier %>% 
   select(-c("glacier.id", "observer", "X", "X.1", "X.2", "minimum.elevation.of.glacier", "maximum.elevation.of.glacier" ))
@@ -277,7 +277,7 @@ ts_glacier_annually
 In order to perform correlation analysis, the bi-annual mass balance values were extrapolated to monthly values using weighted averages derived from the Jungfraujoch temperature data. 
 
 <u>**data preparation (monhtly aggregation) for glacier**</u>
-```{r glacier_monthly_data_preparation, include = TRUE, echo=FALSE}
+```{r glacier_monthly_data_preparation, include = TRUE, echo = TRUE, results = 'hide'}
 
 ## Function to allocate seasonal mass balance by fixed calendar seasons
 allocate_mass_balance_per_year <- function(row, df_jungfraujoch_reduced){
@@ -339,7 +339,7 @@ The raw Massa dataset included daily measurements between January 1, 1981 and De
 Checking for missing values revealed that the variable snow_water_equiv_mm had NAs. We decided to impute them incase we would need this variable in further analysis. The missing values were imputed with zero (0). An additional column imputed_snow_water_equiv was added as a binary flag (1 = imputed, 0 = original) to track these imputations for transparency and possible future filtering.
 
 <u>**data preparation for river massa**</u>
-```{r massa_river_data_preparation, include = TRUE, echo=FALSE}
+```{r massa_river_data_preparation, include = TRUE, echo = TRUE, results = 'hide'}
 # rename columns 
 df_massa <- raw_massa %>%
   # rename(new_name = old_name)
@@ -394,7 +394,7 @@ To be able to do analysis with complementary monthly datasets (Jungfraujoch temp
 The resulting monthly dataset covers the period from January 1981 to December 2020, with 480 monthly observations. As our initial analysis focuses on water level dynamics, a time series object was constructed from the monthly `waterlevel_m` values.
 
 <u>**Creating monthly average waterlevel for massa**</u>
-```{r monthly_massa_river_data_preparation, include = TRUE, echo=FALSE}
+```{r monthly_massa_river_data_preparation, include = TRUE, echo = TRUE, results = 'hide'}
 # create monthly df
 df_monthly <- df_massa %>%
   mutate(
@@ -427,7 +427,7 @@ waterlevel_ts <- ts(df_monthly$waterlevel_m,
 Since water level measurements can be less precise, as it is influenced by the shape of the riverbed, we consider as well the water discharge, expressed in cubic meters per second (m³/s). This metric provides a more accurate representation of variations in the river’s actual water volume, whereas water level indicates the height of the water surface relative to sea level.
 
 <u>**Creating monthly average discharge for massa**</u>
-```{r monthly_average_massa, include = TRUE, echo=FALSE}
+```{r monthly_average_massa, include = TRUE,echo = TRUE, results = 'hide'}
 # calculation average monthly watervolume
 df_massa_monthly <- df_massa %>%
   mutate(Year = year(date_yyyymmdd),
@@ -452,7 +452,7 @@ ts_watervolume_monthly <- ts(df_massa_monthly$discharge_monthly_mean,
 For the EVT (Extreme Value Theory) analysis, we use daily mean water discharge values. Other reports, as referenced in the chapter EVT, also rely on this metric, which allows for a meaningful comparison of our results.
 
 <u>**massa daily water discharge data preparation**</u>
-```{r water_discharge_massa_preparation, include = TRUE, echo=FALSE}
+```{r water_discharge_massa_preparation, include = TRUE, echo = TRUE, results = 'hide'}
 # Read data
 #df_massa <- raw_massa
 
@@ -492,7 +492,7 @@ df_massa_prep <- data.frame(
 A parallel data cleaning and preparation pipeline was implemented for the Rhone River dataset, which shares the same source and structure. The raw Rhone dataset included daily measurements between January 1, 1981 and December 31, 2020.
 
 <u>**data preparation for river rhone**</u>
-```{r rhone_river_data_preparation, include = TRUE, echo=FALSE}
+```{r rhone_river_data_preparation, include = TRUE, echo = TRUE, results = 'hide'}
 # rename columns 
 df_rhone <- raw_rhone %>%
   # rename(new_name = old_name)
@@ -549,7 +549,7 @@ df_rhone %>%
 The Brig rain dataset provides homogeneous monthly total precipitation values in millimeters. The time series spans the period from 1961 to 2025, contains no missing values, and can therefore be directly converted into a time series object.
 
 <u>**data preparation for brig rain**</u>
-```{r brig_rain_data_preparation, include = TRUE, echo=FALSE}
+```{r brig_rain_data_preparation, include = TRUE, echo = TRUE, results = 'hide'}
 raw_brigrain$Date <- as.Date(raw_brigrain$reference_timestamp, format = "%d.%m.%Y")
 
 df_rain <- raw_brigrain %>% select(Date, rhs150m0)
@@ -566,7 +566,7 @@ rain_ts <- ts(df_rain$rhs150m0,
 ```
 
 <u>**brig rain annual aggregation**</u>
-```{r brig_rain_annual aggregation, include = TRUE, echo=FALSE}
+```{r brig_rain_annual aggregation, include = TRUE, echo = TRUE, results = 'hide'}
 # create year column
 df_rain_annual <- df_rain %>%
   mutate(Year = year(Date)) %>%
