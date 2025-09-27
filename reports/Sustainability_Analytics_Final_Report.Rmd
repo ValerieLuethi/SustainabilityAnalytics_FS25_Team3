@@ -1345,6 +1345,8 @@ arimax_glacier <- Arima(glacier_model_data,
                         xreg = temp_lag1_data)
 # check model
 summary(arimax_glacier)
+# accuracy
+accuracy(arimax_glacier)
 ```
 
 <u>**ARIMAX Glacier Model Diagnostics**</u>
@@ -1506,6 +1508,77 @@ final_projections <- data.frame(
                            sum(projections$high_warming$mean[projections$high_warming$mean < 0])), 0)
 )
 print(final_projections)
+```
+
+<u>**Simulation form ARIMAX**</u>
+```{r simulation_arimax, include = TRUE, warning=FALSE, message=FALSE}
+library(forecast)
+
+# Parameters
+nsim <- 1000
+h <- years_to_project
+probs <- c(0.025, 0.25, 0.5, 0.75, 0.975)
+
+# Colors for scenarios
+scenario_colors <- list(
+  conservative = "green",
+  medium = "blue",
+  high_warming = "red"
+)
+
+# Storage for quantiles
+scenario_qs <- list()
+
+# Run ensemble simulations for each scenario
+set.seed(123)
+for (sc in names(scenarios)) {
+  sim_mat <- matrix(NA, nrow = h, ncol = nsim)
+  for (i in seq_len(nsim)) {
+    sim_mat[, i] <- as.numeric(simulate(
+      arimax_glacier, nsim = h, xreg = scenarios[[sc]], bootstrap = TRUE
+    ))
+  }
+  scenario_qs[[sc]] <- apply(sim_mat, 1, quantile, probs = probs, na.rm = TRUE)
+}
+
+# --- Plot ---
+plot(all_years[1:length(hist_data)], hist_data,
+     type = "l", col = "black", lwd = 2,
+     xlim = c(min(all_years), max(all_years)),
+     ylim = c(
+       min(unlist(scenario_qs), hist_data, na.rm = TRUE),
+       max(unlist(scenario_qs), hist_data, na.rm = TRUE)
+     ),
+     main = "Glacier Balance Climate Scenarios to 2060",
+     xlab = "Year", ylab = "Mass Balance (mm w.e.)")
+
+# Add vertical line marking forecast start
+abline(v = max(hist_years), lty = 2, col = "gray")
+
+# Plot each scenario with shaded fan
+for (sc in names(scenarios)) {
+  col <- scenario_colors[[sc]]
+  q <- scenario_qs[[sc]]
+
+  # Shaded 50% interval
+  polygon(c(forecast_years, rev(forecast_years)),
+          c(q["25%", ], rev(q["75%", ])),
+          col = adjustcolor(col, alpha.f = 0.3), border = NA)
+
+  # Shaded 95% interval
+  polygon(c(forecast_years, rev(forecast_years)),
+          c(q["2.5%", ], rev(q["97.5%", ])),
+          col = adjustcolor(col, alpha.f = 0.15), border = NA)
+
+  # Median line
+  lines(forecast_years, q["50%", ], col = col, lwd = 2)
+}
+
+legend("topright",
+       legend = c("Historical", "Conservative", "Medium", "High warming"),
+       col = c("black", "green", "blue", "red"),
+       lty = 1, lwd = 2, bty = "n")
+
 ```
 
 ## Climate-Glacier-River (monthly data)
