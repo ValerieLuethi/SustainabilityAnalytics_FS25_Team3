@@ -1413,6 +1413,101 @@ $$
 - Precipitation doesn't significantly affect annual balance
 - Glacier has 1-year climate memory
 
+### Climate Scenario-Based Projections
+
+The climate projections for Jungfraujoch are from the MeteoSchweiz report "Klimaszenarien Schweiz – eine regionale Übersicht" which is based on the Swiss Climate Scenarios CH2011.
+
+<u>**Climate Scenario-Based Projections**</u>
+```{r climate_scenario_based_projections, include = TRUE, warning=FALSE, message=FALSE}
+# Historical baselines
+jungfraujoch_historical <- data.frame(
+  period_1961_1990 = c(winter = -13.6, summer = -1.8),
+  period_1981_2010 = c(winter = -12.8, summer = -0.8),
+  projection_2060 = c(winter_low = -11.1, winter_high = -9.4, 
+                     summer_low = 1.5, summer_high = 3.5)
+)
+
+# Calculate annual means
+annual_1961_1990 <- mean(c(-13.6, -1.8))  # -7.7°C
+annual_1981_2010 <- mean(c(-12.8, -0.8))  # -6.8°C
+annual_2060_low <- mean(c(-11.1, 1.5))    # -4.8°C
+annual_2060_high <- mean(c(-9.4, 3.5))    # -2.95°C
+
+# Current baseline
+current_jungfraujoch <- as.numeric(tail(ts_temp_aligned, 1))
+
+# Time steps from current to 2060
+current_year <- 2024  # end of current ts
+target_year <- 2060
+years_to_project <- target_year - current_year # 36 years
+
+# Linear warming scenarios
+warming_low <- annual_2060_low - annual_1981_2010   # Conservative warming
+warming_high <- annual_2060_high - annual_1981_2010 # High warming
+
+# temperature projections
+future_years <- 1:years_to_project
+temp_scenario_low <- current_jungfraujoch + (warming_low / years_to_project) * future_years
+temp_scenario_high <- current_jungfraujoch + (warming_high / years_to_project) * future_years
+temp_scenario_medium <- (temp_scenario_low + temp_scenario_high) / 2
+
+# Create lagged temperature matrices for each scenario
+scenarios <- list(
+  conservative = c(tail(ts_temp_aligned, 1), temp_scenario_low[-length(temp_scenario_low)]),
+  medium = c(tail(ts_temp_aligned, 1), temp_scenario_medium[-length(temp_scenario_medium)]),
+  high_warming = c(tail(ts_temp_aligned, 1), temp_scenario_high[-length(temp_scenario_high)])
+)
+
+# Generate projections
+projections <- list()
+for(scenario_name in names(scenarios)) {
+  projections[[scenario_name]] <- forecast(arimax_glacier, 
+                                          h = years_to_project,
+                                          xreg = scenarios[[scenario_name]])
+}
+
+# Get the actual years from your historical data
+hist_years <- as.numeric(time(ts_glacier_aligned))
+forecast_years <- seq(max(hist_years) + 1, target_year, by = 1)
+
+# Create extended time series
+all_years <- c(hist_years, forecast_years)
+hist_data <- as.numeric(ts_glacier_aligned)
+
+# Custom plot with proper year labels
+plot(all_years[1:length(hist_data)], hist_data, 
+     type = "l", xlim = c(min(all_years), max(all_years)),
+     ylim = c(-2000, 500), col = "black", lwd = 2,
+     main = "Glacier Balance Climate Scenarios to 2060",
+     xlab = "Year", ylab = "Mass Balance (mm w.e.)")
+
+# Add forecast scenarios
+lines(forecast_years, projections$medium$mean, col = "blue", lwd = 2)
+lines(forecast_years, projections$conservative$mean, col = "green", lwd = 2)
+lines(forecast_years, projections$high_warming$mean, col = "red", lwd = 2)
+
+# Add vertical line at forecast start
+abline(v = max(hist_years), lty = 2, col = "gray")
+
+legend("topright", c("Medium Warming", "Conservative", "High Warming"), 
+       col = c("blue", "green", "red"), lty = 1)
+
+# Summary of projections
+final_projections <- data.frame(
+  Scenario = c("Low Warming", "Medium Warming", "High Warming"),
+  Temp_Change_by_2060 = c(round(warming_low, 1), 
+                          round(mean(c(warming_low, warming_high)), 1),
+                          round(warming_high, 1)),
+  Final_Balance_2060 = round(c(tail(projections$conservative$mean, 1),
+                              tail(projections$medium$mean, 1),
+                              tail(projections$high_warming$mean, 1)), 0),
+  Cumulative_Loss = round(c(sum(projections$conservative$mean[projections$conservative$mean < 0]),
+                           sum(projections$medium$mean[projections$medium$mean < 0]),
+                           sum(projections$high_warming$mean[projections$high_warming$mean < 0])), 0)
+)
+print(final_projections)
+```
+
 ## Climate-Glacier-River (monthly data)
 
 We now examine how climate-driven changes in glacier mass-balance affect the water level and discharge of Massa.
