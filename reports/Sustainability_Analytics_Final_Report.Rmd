@@ -816,7 +816,7 @@ saveRDS(df_jungfraujoch_processed, "../data/processed/jungfraujoch_temperature.r
 
 ### Annual glacier mass balance
 
-It looks like there is a potential downward trend starting around 2010. The ACF and PACF as well as the Augmented Dickey-Fuller test indicate stationarity.
+It looks like there is a potential downward trend starting around 2010. The ACF and PACF indicate stationarity, whereas the Augmented Dickey-Fuller test is not significant (p > .05) suggesting non-stationrarity. Since glacier-mass balance represents an annual physical balance (with fluctuations around ~ 0) we decided not to difference it. 
 
 <u>**Glacier mass balance annually ACF and PACF**</u>
 ```{r glacier_annual_mass_balance_acf_pacf, include = TRUE}
@@ -832,9 +832,6 @@ adf.test(ts_glacier_annually)
 # Also check visually for trend
 plot(ts_glacier_annually, main="Glacier Mass Balance Over Time")
 abline(lm(ts_glacier_annually ~ time(ts_glacier_annually)), col="red")
-
-# Check if there's a significant trend
-summary(lm(ts_glacier_annually ~ time(ts_glacier_annually)))
 ```
 
 ### Monthly glacier mass balance
@@ -875,7 +872,7 @@ df_glacier_monthly$seasonal <- c(rep(NA, 12), as.numeric(decomp$time.series[,"se
 df_glacier_monthly$deterministic <- c(rep(NA, 12), as.numeric(decomp$time.series[,"trend"]) + as.numeric(decomp$time.series[,"seasonal"]))
 df_glacier_monthly$stochastic <- c(rep(NA, 12), as.numeric(decomp$time.series[,"remainder"]))
 
-saveRDS(df_glacier_monthly, "data/processed/glacier_monthly_processed.rds")
+saveRDS(df_glacier_monthly, "../data/processed/glacier_monthly_processed.rds")
 ```
 
 The ACF and PACF of the STL residuals provide further confirmation: both show no significant autocorrelation at any lag, indicating that the systematic seasonal and trend-driven patterns have been effectively removed and that the residual component can be treated as stationary noise.
@@ -1051,7 +1048,7 @@ det_stoch <- data.frame(
 )
 
 ## save det_stoch df as RDS and CSV
-saveRDS(det_stoch, "data/processed/waterlevel_det_stoch.rds")
+saveRDS(det_stoch, "../data/processed/waterlevel_det_stoch.rds")
 # write.csv(det_stoch, "data/processed/waterlevel_det_stoch.csv", row.names = FALSE)
                 
 ```
@@ -1108,7 +1105,7 @@ head(massa_monthly_mean_stl)  # for checking
 # )
 # 
 # # RDS export
-saveRDS(massa_monthly_mean_stl, "stationary_monthly_mean_watervolume_massa.rds")
+saveRDS(massa_monthly_mean_stl, "../data/processed/stationary_monthly_mean_watervolume_massa.rds")
 ```
 
 
@@ -1137,7 +1134,7 @@ df_jungfrau <- df_jungfrau %>%
 
 # Glacier
 df_glacier <- df_glacier %>%
-  mutate(Date = as.Date(year_month))
+  mutate(Date = as.Date(ym(year_month)))
 
 # Waterlevel
 month_map <- c(
@@ -1229,7 +1226,9 @@ end_overlap <- min(
 )
 
 df_merged_overlap <- df_merged %>%
-  filter(Date >= start_overlap & Date <= end_overlap)
+  drop_na(remainder_jungfrau, remainder_glacier,
+          remainder_waterlevel, remainder_waterdischarge,
+          remainder_precipitation)
 
 # -----------------------------
 # 6) Convert to multivariate ts object
@@ -1266,38 +1265,67 @@ First we examine the relationships between climate variables (mean temperature a
 
 ### Cross-Correlation Analysis (CCF)
 
-We use CCF to identify if there are any lagged effects of climate on glacier melt. This ensures that only variables with meaningful delayed influence will be included as predictors later on. 
+We use ccf to identify if there are any lagged effects of climate on glacier melt. This ensures that only variables with meaningful delayed influence will be included as predictors later on.
 
 <u>**CCF Temperature and Glacier**</u>
 ```{r ccf_temperature_glacier, include = TRUE, warning=FALSE, message=FALSE}
-# Find overlapping period
-common_start <- max(start(ts_jungfraujoch_annual)[1], start(ts_glacier_annually)[1], start(rain_ts_annual)[1])
-common_end <- min(end(ts_jungfraujoch_annual)[1], end(ts_glacier_annually)[1], end(rain_ts_annual)[1])
+# # Find overlapping period
+# common_start <- max(start(ts_temp_diff)[1], start(ts_glacier_annually)[1], start(rain_ts_annual)[1])
+# common_end <- min(end(ts_temp_diff)[1], end(ts_glacier_annually)[1], end(rain_ts_annual)[1])
+# 
+# # Extract common periods
+# ts_temp_aligned <- window(ts_temp_diff, start=common_start, end=common_end)
+# ts_glacier_aligned <- window(ts_glacier_annually, start=common_start, end=common_end)
+# ts_precip_aligned <- window(rain_ts_annual, start=common_start, end=common_end)
+# 
+# par(mfrow = c(1, 2))
+# # Temperature changes affecting glacier balance
+# ccf(ts_glacier_aligned, ts_temp_aligned, main="Glacier & Temperature")
+# ccf(ts_temp_aligned, ts_glacier_aligned, main="Temperature & Glacier")
+# 
+# # create lagged temperature ts (ccf -> lag 1 significant)
+# temp_lag1 <- stats::lag(ts_temp_aligned, -1)
+# cor(ts_glacier_aligned, temp_lag1)
 
-# Extract common periods
-ts_temp_aligned <- window(ts_jungfraujoch_annual, start=common_start, end=common_end)
-ts_glacier_aligned <- window(ts_glacier_annually, start=common_start, end=common_end)
-ts_precip_aligned <- window(rain_ts_annual, start=common_start, end=common_end)
+# -----------------------------
+# Option 1: Temperature in levels (non-differenced)
+# -----------------------------
+common_start2 <- max(start(ts_jungfraujoch_annual)[1], start(ts_glacier_annually)[1], start(rain_ts_annual)[1])
+common_end2   <- min(end(ts_jungfraujoch_annual)[1],   end(ts_glacier_annually)[1],   end(rain_ts_annual)[1])
 
-par(mfrow = c(1, 2))
-# Temperature changes affecting glacier balance
-ccf(ts_glacier_aligned, ts_temp_aligned, main="Glacier & Temperature")
-ccf(ts_temp_aligned, ts_glacier_aligned, main="Temperature & Glacier")
+ts_temp_level_aligned <- window(ts_jungfraujoch_annual, start = common_start2, end = common_end2)
+ts_glacier_level_aligned <- window(ts_glacier_annually, start = common_start2, end = common_end2)
+ts_rain_level_aligned <- window(rain_ts_annual, start = common_start2, end = common_end2)
 
-# create lagged temperature ts (ccf -> lag 1 significant)
-temp_lag1 <- stats::lag(ts_temp_aligned, -1)
-cor(ts_glacier_aligned, temp_lag1)
+par(mfrow = c(1,2))
+ccf(ts_glacier_level_aligned, ts_temp_level_aligned, main="Glacier & Temp (levels)")
+ccf(ts_temp_level_aligned, ts_glacier_level_aligned, main="Temp (levels) & Glacier")
+
+# -----------------------------
+# Option 2: Differenced temperature
+# -----------------------------
+
+ccf(ts_glacier_level_aligned, diff(ts_temp_level_aligned), main="Glacier & Temp (diff)")
+ccf(diff(ts_temp_level_aligned), ts_glacier_level_aligned, main="Temp (diff) & Glacier")
+# -----------------------------
+# Lag temperature by 1 year
+temp_lag1 <- stats::lag(ts_temp_level_aligned, -1)
+# cor(ts_glacier_level_aligned, ts_temp_level_aligned)
+cor(ts_glacier_level_aligned, temp_lag1, use="complete.obs")
+
 ```
 
-The left plot shows how changes in the glacier mass-balance depend on changes in the air temperature. The CCF is significant at lag 1. This indicates that the previous year's temperature affects the current glacier mass-balance. Since the relationship is negative, higher temperatures are associated with lower glacier mass-balance. Yet the correlation (r = -0.19) is weak, meaning temperature explains only a small part of the variability in glacier mass-balance. 
+
+
+
+The left plot shows how changes in the glacier mass-balance depend on the absolute (non-differenced) air temperature. The CCF is significant at lag 1. This indicates that the previous year's temperature affects the current glacier mass-balance. Since the relationship is negative, higher temperatures are associated with lower glacier mass-balance. Yet the correlation (r = -0.19) is relativley weak and since ccf assumes stationarity the result should be interpreted with caution. When using the differenced temperature, the ccf shows no significant lags. This might indicate that year-to-year changes in temperature do not strongly drive glacier mass balance. Therefore for further modelling with ARIMAX temperature will be included in levels as an external factor.
 
 <u>**CCF Precipitation and Glacier**</u>
 ```{r ccf_precipitation_glacier, include = TRUE, warning=FALSE, message=FALSE}
 par(mfrow = c(1, 2))
 # Precipitation affecting glacier balance 
-ccf(ts_glacier_aligned, ts_precip_aligned, main="Glacier & Precipitation")
-ccf(ts_precip_aligned, ts_glacier_aligned, main="Precipitation & Glacier")
-cor(ts_glacier_aligned, ts_precip_aligned)
+ccf(ts_glacier_level_aligned, ts_rain_level_aligned, main="Glacier & Precipitation")
+ccf(ts_rain_level_aligned, ts_glacier_level_aligned, main="Precipitation & Glacier")
 ```
 
 The left plot shows how changes in precipitations might affect glacier mass-balance. The CCF displays no significant lags, indicating no relationship between the two variables. The correlation (r = -0.04) is very weak as well. Since the precipitation was measured in the valley in Brig, it likely doesn't reflect the snow accumulation on the glacier due to substantial elevation differences. As glaciers respond primarily to seasonal snowfall (in winter), using total annual precipitation may not provide sufficient temporal resolution to capture this effect.
@@ -1311,7 +1339,7 @@ We applied auto.arima() to the glacier mass-balance time series, suggesting an A
 <u>**ARIMA Glacier Mass Balance**</u>
 ```{r arima_glacier_mass_balance, include = TRUE, warning=FALSE, message=FALSE}
 # determine ARIMA order
-fit.auto <- auto.arima(ts_glacier_aligned, stationary=TRUE, seasonal=FALSE)
+fit.auto <- auto.arima(ts_glacier_level_aligned, stationary=TRUE, seasonal=FALSE)
 summary(fit.auto)
 checkresiduals(fit.auto)
 
@@ -1338,7 +1366,7 @@ best_aic
 <u>**ARIMAX Glacier Model**</u>
 ```{r arimax_glacier_model, include = TRUE, warning=FALSE, message=FALSE}
 # remove first observation because of lagging
-glacier_model_data <- ts_glacier_aligned[-1]
+glacier_model_data <- ts_glacier_level_aligned[-1]
 temp_lag1_data <- temp_lag1[-length(temp_lag1)]
 
 # ARIMAX
@@ -1356,13 +1384,14 @@ accuracy(arimax_glacier)
 # check residuals
 checkresiduals(arimax_glacier)
 # ACF and PACF of residuals
-par(mfrow=c(2,1))
+par(mfrow=c(1,2))
 acf(residuals(arimax_glacier))
 pacf(residuals(arimax_glacier))
 # Model fit statistics
 AIC(arimax_glacier)
 accuracy(arimax_glacier)
 # Plot fitted vs actual
+par(mfrow = c(1, 1))
 plot(glacier_model_data, main="Glacier Balance: Actual vs Fitted")
 lines(fitted(arimax_glacier), col="red")
 legend("topright", c("Actual", "Fitted"), col=c("black", "red"), lty=1)
@@ -1375,7 +1404,7 @@ forecast(arimax_glacier, h=5,
 <u>**Forecast Glacier Model**</u>
 ```{r forecast_glacier_model, include = TRUE, warning=FALSE, message=FALSE}
 # Forecast temperature
-temp_model <- auto.arima(ts_temp_aligned)
+temp_model <- auto.arima(ts_temp_level_aligned)
 h <- 5  # number of steps ahead to forecast
 temp_forecast <- forecast(temp_model, h = h)
 future_temp <- temp_forecast$mean
@@ -1390,7 +1419,7 @@ plot(temp_forecast, main = "Temperature Forecast", xlab = "Time", ylab = "Temper
 #plot(precip_forecast, main = "Precipitation Forecast", xlab = "Time", ylab = "Precipitation")
 
 # lagged temperature for forecast: use last observed temp for first step
-last_temp <- tail(ts_temp_aligned, 1)
+last_temp <- tail(ts_temp_level_aligned, 1)
 future_temp_lag1 <- c(last_temp, future_temp[-length(future_temp)])
 
 # combine regressors
@@ -1438,7 +1467,7 @@ annual_2060_low <- mean(c(-11.1, 1.5))    # -4.8°C
 annual_2060_high <- mean(c(-9.4, 3.5))    # -2.95°C
 
 # Current baseline
-current_jungfraujoch <- as.numeric(tail(ts_temp_aligned, 1))
+current_jungfraujoch <- as.numeric(tail(ts_temp_level_aligned, 1))
 
 # Time steps from current to 2060
 current_year <- 2024  # end of current ts
@@ -1457,9 +1486,9 @@ temp_scenario_medium <- (temp_scenario_low + temp_scenario_high) / 2
 
 # Create lagged temperature matrices for each scenario
 scenarios <- list(
-  conservative = c(tail(ts_temp_aligned, 1), temp_scenario_low[-length(temp_scenario_low)]),
-  medium = c(tail(ts_temp_aligned, 1), temp_scenario_medium[-length(temp_scenario_medium)]),
-  high_warming = c(tail(ts_temp_aligned, 1), temp_scenario_high[-length(temp_scenario_high)])
+  conservative = c(tail(ts_temp_level_aligned, 1), temp_scenario_low[-length(temp_scenario_low)]),
+  medium = c(tail(ts_temp_level_aligned, 1), temp_scenario_medium[-length(temp_scenario_medium)]),
+  high_warming = c(tail(ts_temp_level_aligned, 1), temp_scenario_high[-length(temp_scenario_high)])
 )
 
 # Generate projections
@@ -1471,12 +1500,12 @@ for(scenario_name in names(scenarios)) {
 }
 
 # Get the actual years from your historical data
-hist_years <- as.numeric(time(ts_glacier_aligned))
+hist_years <- as.numeric(time(ts_glacier_level_aligned))
 forecast_years <- seq(max(hist_years) + 1, target_year, by = 1)
 
 # Create extended time series
 all_years <- c(hist_years, forecast_years)
-hist_data <- as.numeric(ts_glacier_aligned)
+hist_data <- as.numeric(ts_glacier_level_aligned)
 
 # Custom plot with proper year labels
 plot(all_years[1:length(hist_data)], hist_data, 
@@ -1596,48 +1625,47 @@ When looking at the output of the cross-correlation function between Jungfraujoc
 <u>**CCF Jungfraujoch Temperature & Glacier Mass Balance**</u>
 ```{r ccf_jungfraujoch_temperature_glacier_mass_balance, include = TRUE, warning=FALSE, message=FALSE}
 # Scale the two series and convert to numeric vectors
-jungfrau_scaled <- as.numeric(scale(ts_multivariate[, "remainder_jungfrau"]))
-glacier_scaled  <- as.numeric(scale(ts_multivariate[, "remainder_glacier"]))
+jungfrau <- as.numeric(ts_multivariate[, "remainder_jungfrau"])
+glacier  <- as.numeric(ts_multivariate[, "remainder_glacier"])
 
 # Plot scaled series
-plot(jungfrau_scaled, type="l", col="orange", lwd=2,
-     ylab="Scaled value", xlab="Time")
-lines(glacier_scaled, col="blue", lwd=2)
-legend("topright", legend=c("Temperature Jungfraujoch", "Glacier Mass Balance"),
-       col=c("orange","blue"), lty=1)
+plot(scale(jungfrau), type = "l", col = "orange", lwd = 2,
+     ylab = "Scaled value", xlab = "Time",
+     main = "Scaled Jungfraujoch Temperature vs Glacier Mass Balance")
+lines(scale(glacier), col = "blue", lwd = 2)
+legend("topright", legend = c("Temperature (Jungfraujoch)", "Glacier Mass Balance"),
+       col = c("orange", "blue"), lty = 1, lwd = 2)
 
-# Set 1x2 layout and increase top margin
-par(mfrow = c(1, 2), mar = c(4, 4, 5, 1)) # bottom, left, top, right
+
+par(mfrow = c(1, 2))
 # CCF: Temperature leads Glacier
-ccf(glacier_scaled, jungfrau_scaled, # temperature leads
+ccf(glacier, jungfrau, # temperature leads
     main = "CCF: Glacier vs Temperature")
 # CCF: Glacier leads Temperatues
-ccf(jungfrau_scaled, glacier_scaled, # glacier leads
+ccf(jungfrau, glacier, # glacier leads
     main = "CCF: Temperature vs Glacier")
-# Reset plotting parameters
-par(mfrow = c(1, 1), mar = c(5, 4, 4, 2) + 0.1)
 ```
 
 <u>**CCF Glacier Mass Balance & Massa Waterlevel**</u>
 ```{r ccf_glacier_mass_balance_waterlevel, include = TRUE, warning=FALSE, message=FALSE}
 # Scale the two series and convert to numeric vectors
-waterlevel_scaled <- as.numeric(scale(ts_multivariate[, "remainder_waterlevel"]))
-glacier_scaled  <- as.numeric(scale(ts_multivariate[, "remainder_glacier"]))
+waterlevel <- as.numeric(ts_multivariate[, "remainder_waterlevel"])
+glacier  <- as.numeric(ts_multivariate[, "remainder_glacier"])
 
 # Plot scaled series
-plot(waterlevel_scaled, type="l", col="orange", lwd=2,
+plot(scale(waterlevel), type="l", col="orange", lwd=2,
      ylab="Scaled value", xlab="Time")
-lines(glacier_scaled, col="blue", lwd=2)
+lines(scale(glacier), col="blue", lwd=2)
 legend("topright", legend=c("Waterlevel Massa", "Glacier Mass Balance"),
        col=c("orange","blue"), lty=1)
 
 # Set 1x2 layout and increase top margin
 par(mfrow = c(1, 2), mar = c(4, 4, 5, 1)) # bottom, left, top, right
 # CCF: Waterlevel leads Glacier
-ccf(glacier_scaled, waterlevel_scaled, # waterlevel leads
+ccf(glacier, waterlevel, # waterlevel leads
     main = "CCF: Glacier vs Waterlevel")
 # CCF: Glacier leads Waterlevel
-ccf(waterlevel_scaled, glacier_scaled, # glacier leads
+ccf(waterlevel, glacier, # glacier leads
     main = "CCF: Waterlevel vs Glacier")
 # Reset plotting parameters
 par(mfrow = c(1, 1), mar = c(5, 4, 4, 2) + 0.1)
@@ -1646,80 +1674,76 @@ par(mfrow = c(1, 1), mar = c(5, 4, 4, 2) + 0.1)
 <u>**CCF Glacier Mass Balance & Massa Waterdischarge**</u>
 ```{r ccf_glacier_mass_balance_waterdischarge, include = TRUE, warning=FALSE, message=FALSE}
 # Scale the two series and convert to numeric vectors
-waterdischarge_scaled <- as.numeric(scale(ts_multivariate[, "remainder_waterdischarge"]))
-glacier_scaled  <- as.numeric(scale(ts_multivariate[, "remainder_glacier"]))
+waterdischarge <- as.numeric(ts_multivariate[, "remainder_waterdischarge"])
+glacier <- as.numeric(ts_multivariate[, "remainder_glacier"])
 
 # Plot scaled series
-plot(waterdischarge_scaled, type="l", col="orange", lwd=2,
+plot(scale(waterdischarge), type="l", col="orange", lwd=2,
      ylab="Scaled value", xlab="Time")
-lines(glacier_scaled, col="blue", lwd=2)
+lines(scale(glacier), col="blue", lwd=2)
 legend("topright", legend=c("Waterdischarge Massa", "Glacier Mass Balance"),
        col=c("orange","blue"), lty=1)
 
 # Set 1x2 layout and increase top margin
 par(mfrow = c(1, 2), mar = c(4, 4, 5, 1)) # bottom, left, top, right
 # CCF: Waterlevel leads Glacier
-ccf(glacier_scaled, waterdischarge_scaled, # waterdischarge leads
+ccf(glacier, waterdischarge, # waterdischarge leads
     main = "CCF: Glacier vs Waterdischarge")
 # CCF: Glacier leads Waterlevel
-ccf(waterdischarge_scaled, glacier_scaled, # glacier leads
+ccf(waterdischarge, glacier, # glacier leads
     main = "CCF: Waterdischarge vs Glacier")
 # Reset plotting parameters
 par(mfrow = c(1, 1), mar = c(5, 4, 4, 2) + 0.1)
 ```
 
-For the cross-correlation function between the Jungfraujoch temperature and the waterlevels Massa we can observe that temperature is leading with significant positive correlations at lags 0, 1 and 3. This is in line with our hypothesis that higher temperatures lead to increased snow melt, which then raises water levels with some delay. The negative correlations at lags 9 and 10 are likely due to the correlation of past high summer temperatures with low winter water levels. 
+For the cross-correlation function between the Jungfraujoch temperature and the waterlevels of Massa we can observe that temperature is leading with a weak yet significant positive correlations at lag 0.This indicates that higher temperatures are associated with slightly higher water levels in the same month, although the effect is small.
 
 <u>**CCF Jungfraujoch Temperature & Massa Waterlevel**</u>
 ```{r ccf_jungfraujoch_temperature_waterlevel, include = TRUE, warning=FALSE, message=FALSE}
 # Scale the two series and convert to numeric vectors
-jungfrau_scaled <- as.numeric(scale(ts_multivariate[, "remainder_jungfrau"]))
-waterlevel_scaled  <- as.numeric(scale(ts_multivariate[, "remainder_waterlevel"]))
+jungfrau <- as.numeric(ts_multivariate[, "remainder_jungfrau"])
+waterlevel  <- as.numeric(ts_multivariate[, "remainder_waterlevel"])
 
 # Plot scaled series
-plot(jungfrau_scaled, type="l", col="orange", lwd=2,
+plot(scale(jungfrau), type="l", col="orange", lwd=2,
      ylab="Scaled value", xlab="Time")
-lines(waterlevel_scaled, col="blue", lwd=2)
+lines(scale(waterlevel), col="blue", lwd=2)
 legend("topright", legend=c("Temperature Jungfraujoch", "Waterlevel Massa"),
        col=c("orange","blue"), lty=1)
 
 # Set 1x2 layout and increase top margin
-par(mfrow = c(1, 2), mar = c(4, 4, 5, 1)) # bottom, left, top, right
+par(mfrow = c(1, 2))
 # CCF: Temperature leads Waterlevel
-ccf(waterlevel_scaled, jungfrau_scaled, 
+ccf(waterlevel, jungfrau, 
     main = "CCF: Waterlevel vs Temperature")
 # CCF: Glacier leads Temperatues
-ccf(jungfrau_scaled, waterlevel_scaled,
+ccf(jungfrau, waterlevel,
     main = "CCF: Temperature vs Waterlevel")
-# Reset plotting parameters
-par(mfrow = c(1, 1), mar = c(5, 4, 4, 2) + 0.1)
 ```
 
-When we look at waterdischarge instead of waterlevel we see a strong correlation with temperature at lag 0 (within the same month). This indicates that the monthly waterdischarge of Massa responds directly and quickly to monthly temperature changes. With the waterdischarge increasing as temperatures rise, reflecting the immediate hydrological response to snow melt and glacier melt during warmer periods. Conversly, lower temperatures are associated with lower discharge due to reduced melt and freezing.
+When considering water discharge instead of water level, the correlation at lag 0 is stronger. This indicates that the monthly water discharge of Massa responds directly and quickly to temperature changes. Higher temperatures lead to increased discharge, reflecting the immediate hydrological response from snow and glacier melt, while lower temperatures correspond to reduced discharge due to reduced melt and freezing.
 
 <u>**CCF Jungfraujoch Temperature & Massa Waterdischarge**</u>
 ```{r ccf_jungfraujoch_temperature_waterdischarge, include = TRUE, warning=FALSE, message=FALSE}
 # Scale the two series and convert to numeric vectors
-jungfrau_scaled <- as.numeric(scale(ts_multivariate[, "remainder_jungfrau"]))
-waterdischarge_scaled  <- as.numeric(scale(ts_multivariate[, "remainder_waterdischarge"]))
+jungfrau <- as.numeric(ts_multivariate[, "remainder_jungfrau"])
+waterdischarge  <- as.numeric(ts_multivariate[, "remainder_waterdischarge"])
 
 # Plot scaled series
-plot(jungfrau_scaled, type="l", col="orange", lwd=2,
+plot(scale(jungfrau), type="l", col="orange", lwd=2,
      ylab="Scaled value", xlab="Time")
-lines(waterdischarge_scaled, col="blue", lwd=2)
+lines(scale(waterdischarge), col="blue", lwd=2)
 legend("topright", legend=c("Temperature Jungfraujoch", "Waterdischarge Massa"),
        col=c("orange","blue"), lty=1)
 
 # Set 1x2 layout and increase top margin
-par(mfrow = c(1, 2), mar = c(4, 4, 5, 1)) # bottom, left, top, right
+par(mfrow = c(1, 2))
 # CCF: Temperature leads Waterdischarge
-ccf(waterdischarge_scaled, jungfrau_scaled, 
+ccf(waterdischarge, jungfrau, 
     main = "CCF: Waterdischarge vs Temperature")
 # CCF: Glacier leads Temperatues
-ccf(jungfrau_scaled, waterdischarge_scaled,
+ccf(jungfrau, waterdischarge,
     main = "CCF: Temperature vs Waterdischarge")
-# Reset plotting parameters
-par(mfrow = c(1, 1), mar = c(5, 4, 4, 2) + 0.1)
 ```
 
 The cross-correlation analysis between the monthly precipitations in Brig and the monthly waterlevels of Massa shows no significant relationship. Due to the use of monthly data it is possible that short-term effects were smoothed out. It might also be the case that precipitations in the valley in Brig does not reflect the hdydrological processes in the glacial upstream cachement of the river Massa. In further analysis snow and glacier melt should be taken into account as well. In addition, using the water discharge instead of water level could provide a more direct measure of the river's hydrological response.
@@ -1727,23 +1751,23 @@ The cross-correlation analysis between the monthly precipitations in Brig and th
 <u>**CCF Precipitation Brig & Massa Waterlevel**</u>
 ```{r ccf_precipitation_waterlevel, include = TRUE, warning=FALSE, message=FALSE}
 # Scale the two series and convert to numeric vectors
-precipitation_scaled <- as.numeric(scale(ts_multivariate[, "remainder_precipitation"]))
-waterlevel_scaled  <- as.numeric(scale(ts_multivariate[, "remainder_waterlevel"]))
+precipitation <- as.numeric(ts_multivariate[, "remainder_precipitation"])
+waterlevel  <- as.numeric(ts_multivariate[, "remainder_waterlevel"])
 
 # Plot scaled series
-plot(precipitation_scaled, type="l", col="orange", lwd=2,
+plot(scale(precipitation), type="l", col="orange", lwd=2,
      ylab="Scaled value", xlab="Time")
-lines(waterlevel_scaled, col="blue", lwd=2)
+lines(scale(waterlevel), col="blue", lwd=2)
 legend("topright", legend=c("Precipitation Brig", "Waterlevel Massa"),
        col=c("orange","blue"), lty=1)
 
 # Set 1x2 layout and increase top margin
 par(mfrow = c(1, 2), mar = c(4, 4, 5, 1)) # bottom, left, top, right
 # CCF: Precipitation leads Waterlevel
-ccf(waterlevel_scaled, precipitation_scaled, 
+ccf(waterlevel, precipitation, 
     main = "CCF: Waterlevel vs Precipitation")
 # CCF: Waterlevel leads Precipitation
-ccf(precipitation_scaled, waterlevel_scaled,
+ccf(precipitation, waterlevel,
     main = "CCF: Precipitation vs Waterlevel")
 # Reset plotting parameters
 par(mfrow = c(1, 1), mar = c(5, 4, 4, 2) + 0.1)
@@ -1752,26 +1776,94 @@ par(mfrow = c(1, 1), mar = c(5, 4, 4, 2) + 0.1)
 <u>**CCF Precipitation Brig & Massa Waterdischarge**</u>
 ```{r ccf_precipitation_waterdischarge, include = TRUE, warning=FALSE, message=FALSE}
 # Scale the two series and convert to numeric vectors
-precipitation_scaled <- as.numeric(scale(ts_multivariate[, "remainder_precipitation"]))
-waterdischarge_scaled  <- as.numeric(scale(ts_multivariate[, "remainder_waterdischarge"]))
+precipitation <- as.numeric(ts_multivariate[, "remainder_precipitation"])
+waterdischarge  <- as.numeric(ts_multivariate[, "remainder_waterdischarge"])
 
 # Plot scaled series
-plot(precipitation_scaled, type="l", col="orange", lwd=2,
+plot(scale(precipitation), type="l", col="orange", lwd=2,
      ylab="Scaled value", xlab="Time")
-lines(waterdischarge_scaled, col="blue", lwd=2)
+lines(scale(waterdischarge), col="blue", lwd=2)
 legend("topright", legend=c("Precipitation Brig", "Waterdischarge Massa"),
        col=c("orange","blue"), lty=1)
 
 # Set 1x2 layout and increase top margin
-par(mfrow = c(1, 2), mar = c(4, 4, 5, 1)) # bottom, left, top, right
+par(mfrow = c(1, 2))
 # CCF: Precipitation leads Waterdischarge
-ccf(waterdischarge_scaled, precipitation_scaled, 
+ccf(waterdischarge, precipitation, 
     main = "CCF: Waterdischarge vs Precipitation")
 # CCF: Waterdischarge leads Precipitation
-ccf(precipitation_scaled, waterdischarge_scaled,
+ccf(precipitation, waterdischarge,
     main = "CCF: Precipitation vs Waterdischarge")
-# Reset plotting parameters
-par(mfrow = c(1, 1), mar = c(5, 4, 4, 2) + 0.1)
+
+```
+- precipitation leading at lag 6 --> dealyed run-off response due to snow accumulation and delayed melt?
+- waterdischarge leading at lag 5? doesn't make much sense
+
+###ARIMAX
+
+<u>**Identify ARIMA structure**</u>
+```{r auto_arima, include = TRUE, warning=FALSE, message=FALSE}
+# -----------------------------
+# 1) Auto ARIMA for water discharge
+# -----------------------------
+fit.auto <- auto.arima(waterdischarge, stationary = TRUE, seasonal = TRUE)
+summary(fit.auto)
+
+# check acf/pacf
+par(mfrow = c(1, 2))
+acf(waterdischarge)
+pacf(waterdischarge)
+
+# -----------------------------
+# 2) Align series and remove NAs (if any)
+# -----------------------------
+complete_idx <- complete.cases(waterdischarge, jungfrau, precipitation)
+discharge_clean <- waterdischarge[complete_idx]
+temp_clean <- jungfrau[complete_idx]
+precip_clean <- precipitation[complete_idx]
+
+# -----------------------------
+# 3) Build ARIMAX model with current precipitation
+# -----------------------------
+arimax_monthly <- Arima(discharge_clean,
+                        order = c(0,0,1),      # From auto.arima
+                        xreg = cbind(temp_clean, precip_clean),
+                        include.constant = TRUE)
+
+summary(arimax_monthly)
+checkresiduals(arimax_monthly)
+
+# -----------------------------
+# 4) Fitted vs observed
+# -----------------------------
+par(mfrow = c(1, 1))
+fitted_values <- fitted(arimax_monthly)
+
+plot(discharge_clean, type = "p", col = "black", pch = 16,
+     ylab = "Water Discharge", xlab = "Time",
+     main = "Observed vs Fitted Water Discharge")
+
+lines(fitted_values, col = "red", lwd = 2)  # fitted as red line
+
+legend("topright", legend = c("Observed", "Fitted"),
+       col = c("black", "red"), pch = c(16, NA), lty = c(NA, 1), lwd = 2)
+
+# -----------------------------
+# 5) Forecast future discharge
+# -----------------------------
+# Example: forecast next 12 months
+horizon <- 12
+future_temp <- rep(mean(temp_clean), horizon)        # replace with scenario if available
+future_precip <- rep(mean(precip_clean), horizon)   # replace with scenario if available
+
+forecast_values <- forecast(arimax_monthly,
+                            h = horizon,
+                            xreg = cbind(future_temp, future_precip))
+
+# Plot forecast
+plot(forecast_values, main = "ARIMAX Forecast for Water Discharge",
+     ylab = "Water Discharge", xlab = "Time")
+lines(discharge_clean, col = "black", lwd = 2) # add historical
 ```
 
 ## Extreme Value Theory (EVT) {#EVT_Massa_Report}
