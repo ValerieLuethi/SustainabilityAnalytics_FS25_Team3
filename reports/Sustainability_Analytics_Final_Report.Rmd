@@ -589,20 +589,17 @@ To explore the impact of climate change on the Massa River and future water avai
 
 ### Temperature
 ```{r temperature_eda, include = TRUE}
-ts_temp <- ts(df_jungfraujoch_reduced$temp_mean_C,
-              start = c(1933, 1),
-              frequency = 12)   # monthly data (12 obs per year)
-summary(ts_temp)
+summary(ts_jungfraujoch)
 
 # Plot observed temp with LOWESS trend
-plot(ts_temp,
+plot(ts_jungfraujoch,
      ylab = "Observed Temperature (°C)",
      xlab = "Year",
      main = "Monthly Mean Temperature at Jungfraujoch",
      col = "blue", lwd = 1)
 
 # Add smoothed trend line
-lines(lowess(time(ts_temp), ts_temp), col = "red", lwd = 2)
+lines(lowess(time(ts_jungfraujoch), ts_jungfraujoch), col = "red", lwd = 2)
 
 ```
 
@@ -729,11 +726,9 @@ ts_temp_diff <- diff(ts_jungfraujoch_annual)
 # check adf
 adf.test(ts_temp_diff)
 # check ACF and PACF of differenced series
-par(mfrow=c(2,1))
+par(mfrow=c(1,2))
 acf(ts_temp_diff, main="ACF: Differenced Temperature", lag.max=20)
 pacf(ts_temp_diff, main="PACF: Differenced Temperature", lag.max=20)
-# plot
-plot(ts_temp_diff, main="Differenced Temperature")
 ```
 
 ### Monthly mean temperature
@@ -743,6 +738,7 @@ The ACF shows a strong seasonal pattern reflecting the annual temperature cycle.
 <u>**Jungfraujoch ACF and PACF**</u>
 ```{r jungfraujoch_monthly_temperature_acf_pacf, include = TRUE}
 # acf and pacf
+par(mfrow=c(1,2))
 acf(ts_jungfraujoch) # acf indicates seasonality
 pacf(ts_jungfraujoch) # damped sinusoid
 ```
@@ -753,36 +749,37 @@ The Augmented-Dickey-Fuller test was used to formally check stationarity of the 
 <u>**Jungfraujoch Temperature STL Decomposition**</u>
 ```{r jungfraujoch_temperature_stl_decomposition, include = TRUE}
 # decomposition with stl
-ts_jungfraujoch_stl <- stl(ts_jungfraujoch, s.window = "periodic") # assumes strong, stable seasonality
-plot(ts_jungfraujoch_stl, main = "s.window periodic")
-ts_jungfraujoch_stl_13 <- stl(ts_jungfraujoch, s.window = 13) # 1 year smooth
-plot(ts_jungfraujoch_stl_13, main = "s.window = 13")
-ts_jungfraujoch_stl_25 <- stl(ts_jungfraujoch, s.window = 25) # 2 year smooth
-plot(ts_jungfraujoch_stl_25, main = "s.window = 25")
-ts_jungfraujoch_stl_37 <- stl(ts_jungfraujoch, s.window = 37) # 3 year smooth
-plot(ts_jungfraujoch_stl_37, main = "s.window = 37")
+# ts_jungfraujoch_stl <- stl(ts_jungfraujoch, s.window = "periodic") # assumes strong, stable seasonality
+# plot(ts_jungfraujoch_stl, main = "s.window periodic")
+# ts_jungfraujoch_stl_13 <- stl(ts_jungfraujoch, s.window = 13) # 1 year smooth
+# plot(ts_jungfraujoch_stl_13, main = "s.window = 13")
+# ts_jungfraujoch_stl_25 <- stl(ts_jungfraujoch, s.window = 25) # 2 year smooth
+# plot(ts_jungfraujoch_stl_25, main = "s.window = 25")
+# ts_jungfraujoch_stl_37 <- stl(ts_jungfraujoch, s.window = 37) # 3 year smooth
+# plot(ts_jungfraujoch_stl_37, main = "s.window = 37")
 ts_jungfraujoch_stl_37_121 <- stl(ts_jungfraujoch, s.window = 37, t.window=121) # 3 year smooth
 plot(ts_jungfraujoch_stl_37_121, main = "s.window = 37, t.window=121")
-ts_jungfraujoch_stl_49 <- stl(ts_jungfraujoch, s.window = 49)
-plot(ts_jungfraujoch_stl_49)
+# ts_jungfraujoch_stl_49 <- stl(ts_jungfraujoch, s.window = 49)
+# plot(ts_jungfraujoch_stl_49)
 
-remainder_periodic <- ts_jungfraujoch_stl$time.series[, "remainder"]
-acf(remainder_periodic, main = "ACF of STL remainder, periodic")
-pacf(remainder_periodic, main = "PACF of STL remainder, periodic")
-
-remainder_13 <- ts_jungfraujoch_stl_13$time.series[, "remainder"]
-acf(remainder_13, main = "ACF of STL remainder, s.window = 13")
-pacf(remainder_13, main = "PACF of STL remainder, s.window = 13")
-
-remainder_25 <- ts_jungfraujoch_stl_25$time.series[, "remainder"]
-acf(remainder_25, main="ACF of STL remainder, s.window = 25")
-pacf(remainder_25, main = "PACF of STL remainder, s.window = 25")
-
-remainder_37 <- ts_jungfraujoch_stl_37$time.series[, "remainder"]
-acf(remainder_37, main = "ACF of STL remainder, s.window = 37") # ACF lags 2 and 5 persist
-pacf(remainder_37, main = "PACF of STL remainder, s.window = 37")
+# remainder_periodic <- ts_jungfraujoch_stl$time.series[, "remainder"]
+# acf(remainder_periodic, main = "ACF of STL remainder, periodic")
+# pacf(remainder_periodic, main = "PACF of STL remainder, periodic")
+# 
+# remainder_13 <- ts_jungfraujoch_stl_13$time.series[, "remainder"]
+# acf(remainder_13, main = "ACF of STL remainder, s.window = 13")
+# pacf(remainder_13, main = "PACF of STL remainder, s.window = 13")
+# 
+# remainder_25 <- ts_jungfraujoch_stl_25$time.series[, "remainder"]
+# acf(remainder_25, main="ACF of STL remainder, s.window = 25")
+# pacf(remainder_25, main = "PACF of STL remainder, s.window = 25")
+# 
+# remainder_37 <- ts_jungfraujoch_stl_37$time.series[, "remainder"]
+# acf(remainder_37, main = "ACF of STL remainder, s.window = 37") # ACF lags 2 and 5 persist
+# pacf(remainder_37, main = "PACF of STL remainder, s.window = 37")
 
 remainder_37_121 <- ts_jungfraujoch_stl_37_121$time.series[, "remainder"]
+par(mfrow=c(1,2))
 acf(remainder_37_121)
 pacf(remainder_37_121) # no change compared to without t.window
 
@@ -819,7 +816,7 @@ saveRDS(df_jungfraujoch_processed, "../data/processed/jungfraujoch_temperature.r
 
 ### Annual glacier mass balance
 
-Visible downward trend but ACF and PACF indicate stationarity. Since we are interested in the long-term decline of the glacier mass balance we will include the trend in the ARIMAX model.
+It looks like there is a potential downward trend starting around 2010. The ACF and PACF as well as the Augmented Dickey-Fuller test indicate stationarity.
 
 <u>**Glacier mass balance annually ACF and PACF**</u>
 ```{r glacier_annual_mass_balance_acf_pacf, include = TRUE}
@@ -831,8 +828,6 @@ acf(ts_glacier_annually)
 pacf(ts_glacier_annually)
 # adf
 adf.test(ts_glacier_annually)
-# KPSS test (null hypothesis = stationary)
-kpss.test(ts_glacier_annually)
 
 # Also check visually for trend
 plot(ts_glacier_annually, main="Glacier Mass Balance Over Time")
@@ -869,9 +864,18 @@ The STL decomposition of the differenced time series reveals clear evidence of n
 residuals_stl <- decomp$time.series[,"remainder"]
 
 ## Plot ACF and PACF of residuals
-par(mfrow=c(2,1))
+par(mfrow=c(1,2))
 acf(residuals_stl, main="ACF of STL Residuals", na.action=na.pass)
 pacf(residuals_stl, main="PACF of STL Residuals", na.action=na.pass)
+
+## adding components from stl decomp to the df
+## First 12 values are NA as seasonal decomp was done with lag=12
+df_glacier_monthly$trend <- c(rep(NA, 12), as.numeric(decomp$time.series[,"trend"]))
+df_glacier_monthly$seasonal <- c(rep(NA, 12), as.numeric(decomp$time.series[,"seasonal"]))
+df_glacier_monthly$deterministic <- c(rep(NA, 12), as.numeric(decomp$time.series[,"trend"]) + as.numeric(decomp$time.series[,"seasonal"]))
+df_glacier_monthly$stochastic <- c(rep(NA, 12), as.numeric(decomp$time.series[,"remainder"]))
+
+saveRDS(df_glacier_monthly, "data/processed/glacier_monthly_processed.rds")
 ```
 
 The ACF and PACF of the STL residuals provide further confirmation: both show no significant autocorrelation at any lag, indicating that the systematic seasonal and trend-driven patterns have been effectively removed and that the residual component can be treated as stationary noise.
@@ -915,6 +919,7 @@ stl_1 <- stl(rain_ts, s.window =122, t.window=115)
 plot(stl_1)
 remainder_stl1 <- stl_1$time.series[,"remainder"]
 adf.test(remainder_stl1)
+par(mfrow=c(1,2))
 acf(remainder_stl1, main = "ACF of residuals / Brig Rain / stl")
 pacf(remainder_stl1, main = "PACF of residuals / Brig Rain / stl")
 ```
@@ -932,7 +937,7 @@ rain_decomp_df <- data.frame(
 
 head(rain_decomp_df)  # for checking
 
-#saveRDS(rain_decomp_df, file = "rain_decomposition.rds")
+saveRDS(rain_decomp_df, file = "rain_decomposition.rds")
 ```
 
 
@@ -1046,7 +1051,7 @@ det_stoch <- data.frame(
 )
 
 ## save det_stoch df as RDS and CSV
-# saveRDS(det_stoch, "data/processed/waterlevel_det_stoch.rds")
+saveRDS(det_stoch, "data/processed/waterlevel_det_stoch.rds")
 # write.csv(det_stoch, "data/processed/waterlevel_det_stoch.csv", row.names = FALSE)
                 
 ```
@@ -1103,10 +1108,7 @@ head(massa_monthly_mean_stl)  # for checking
 # )
 # 
 # # RDS export
-# saveRDS(
-#   massa_monthly_mean_stl, 
-#   "stationary_monthly_mean_watervolume_massa.rds"
-# )
+saveRDS(massa_monthly_mean_stl, "stationary_monthly_mean_watervolume_massa.rds")
 ```
 
 
@@ -1260,7 +1262,7 @@ saveRDS(ts_multivariate, "../data/processed/ts_multivariate.rds")
 
 ## Climate and Glacier Melt (annual data)
 
-First we examine the relationships between climate variables (mean temperature and total precipiation) with glaicer mass balance on a yearly level.
+First we examine the relationships between climate variables (mean temperature and total precipitation) with glacier mass balance on a yearly level.
 
 ### Cross-Correlation Analysis (CCF)
 
