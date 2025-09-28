@@ -53,7 +53,7 @@ library(zoo)      # for function 'yearmon'
 
 # Introduction
 
-The United Nations declared the year 2025 as the “International Year of Glaciers Preservation” to raise global awareness about the critical role of glaciers in the climate system and the hydrological cycle and the economic, social and environmental impacts of the impending changes [UN](https://www.un-glaciers.org/en). In alignment with this initiative, this report provides a sustainability analysis of the Aletsch Glacier, the largest glacier in the Alps. The focus lies on the Glaciers impact on the Massa river and the downstream communities in the Canton of Valais, particularly the town of Brig.
+The United Nations declared the year 2025 as the “International Year of Glaciers Preservation” to raise global awareness about the critical role of glaciers in the climate system and the hydrological cycle as well as the economic, social and environmental impacts of the impending changes ([UN](https://www.un-glaciers.org/en)). In alignment with this initiative, this report provides a sustainability analysis of the Aletsch Glacier, the largest glacier in the Alps. The focus lies on the Glaciers impact on the Massa river and the downstream communities in the Canton of Valais, particularly the town of Brig.
 The Aletsch Glacier`s meltwater feeds the Massa River, which joins the Rhone near Brig. While increased melting can temporarily increase flood risk, the long-term loss of glacier mass threatens to reduce water availability, impacting both the local population and hydropower generation.
 
 This report aims to analyze these risks by developing a forecasting system. This system links climate change indicators to the Aletsch Glacier's mass changes and subsequently to the waterlevel, watervolume and extreme flow events of the Massa and Rhone rivers. 
@@ -72,9 +72,11 @@ The goal is to provide local communities and stakeholders with the necessary inf
 
 How might we analyze the impact of climate change on the river levels of Massa for the Canton Valais so that the people of Brig can better prepare themselves for future changes in flood risk and water availability?
 
-To answer this question, our analysis is divided into two components:
+To answer this question, our analysis is divided into three components:
 
-- Climate-Glacier-River Model: We use an ARIMAX model to link climate variables (such as temperature and precipitation) to glacier melt and resulting changes in river volume. This will allow for forecasting of typical water flow conditions and seasonal availability.
+- Climate-Glacier Model: We use an ARIMAX model with annual data to link climate variables (temperature and precipitation) to glacier mass balance to forecast long-term ice loss
+
+- Climate-River Model (Monthly): We use a SARIMAX model with monthly data linking climate variables (temperature and precipitation) to river discharge to gain insights for wate rmanagement
 
 - Extreme Value Theory (EVT): EVT will be used to quantify the probability of extreme events, such as flooding, providing critical information for climate risk assessment and the development of preparedness strategies.
 
@@ -160,7 +162,7 @@ For the analysis we used the following datasets:
 
 - Glacier Mass Balance - Seasonal and annual mass balance measurements of the Grosser Aletschgletscher
 
-- Jungfraujoch Temperature - Monthly air temperature from the high-alpone Jungfraujoch station
+- Jungfraujoch Temperature - Monthly air temperature from the high-alpine Jungfraujoch station
 
 - Brig Rainfall - Monthly precipitation totals from Brig weather station
 
@@ -168,12 +170,11 @@ For the analysis we used the following datasets:
 
 - Rhone River - Daily hydro-meteorological observations of Massa River
 
-The [feature explanation](#Table_feature_exp) can be found in the appendix.
+A detailed explanation of glacier mass balance and hydro-meteorological river data can be found in the [feature explanation](#Table_feature_exp) in the appendix.
 
 <u>**Loading Data**</u>
 ```{r loading_data, include= TRUE, echo = TRUE, results = 'hide'}
 # Reading in data
-# for massa, rhone: why are the processed csv loaded instead of the raw data?
 raw_massa <- read.csv('../data/raw/massa_CAMELS_CH_obs_based_2161.csv', header=TRUE, sep=',', na.strings='-')
 raw_rhone <- read.csv('../data/raw/brig_CAMELS_CH_obs_based_2346.csv', header=TRUE, sep=',', na.strings='-')
 raw_glacier <- read.csv('../data/raw/massbalance_observation.csv', header=TRUE, sep=';', na.strings='-')
@@ -185,7 +186,7 @@ raw_brigrain <- read.csv('../data/raw/weather_rain_monthly_brig.csv', header=TRU
 ## Jungfraujoch Temperature
 The homogeneous data series from the Jungfraujoch climate station is available on demand via [MeteoSchweiz OpenData](https://www.meteoswiss.admin.ch/services-and-publications/service/open-data.html). The station is located 3571 meters above sea level and located in the Aletsch area. We were interested in the measurement of the homogeneous monthly mean temperature covering the time span from 01/01/1933 to 01/07/2025. The temperature in Celsius was measured 2 meters above ground.
 
-The raw Jungfraujoch weather data set was prepared by first converting the reference_timestamp column into a proper datetime format. Then the data set was reduced to the columns necessary for our analysis (station_abbr, reference_timestamp, temp_mean_C). For clarity columns were renamed. A check for missing values, confirmed that there were none. Finally a time series object of the mean temperature values was created, specifying the start and end dates as well as the monthly frequency.
+The raw Jungfraujoch weather data set was prepared by first converting the reference_timestamp column into a proper datetime format. Then the data set was reduced to the columns necessary for our analysis (station_abbr, reference_timestamp, temp_mean_C). For clarity columns were renamed. A check for missing values, confirmed that there were none. Then a time series object of the mean temperature values was created, specifying the start and end dates as well as the monthly frequency.
 
 <u>**data preparation for jungfraujoch**</u>
 ```{r jungfraujoch_temperature_data_preparation, include = TRUE, echo = TRUE, results = 'hide'}
@@ -207,10 +208,6 @@ ts_jungfraujoch <- ts(df_jungfraujoch_reduced$temp_mean_C,
                               (nrow(df_jungfraujoch_reduced)-1) %% 12 + 1),
                       frequency = 12)
 
-```
-
-<u>**jungfraujoch aggreagate to annual data**</u>
-```{r jungfraujoch_aggregate_annual_mean, include = TRUE, echo = TRUE, results = 'hide'}
 # create a year column
 df_jungfraujoch_year <- df_jungfraujoch_reduced %>%
   mutate(Year = year(reference_timestamp))
@@ -225,6 +222,27 @@ ts_jungfraujoch_annual <- ts(df_jungfraujoch_annual$temp_mean_C,
                              start = min(df_jungfraujoch_annual$Year),
                              end = max(df_jungfraujoch_annual$Year),
                              frequency = 1)
+
+```
+Additionally for later use in the annual Climate-Glacier model an annual time series was created by aggregating the monthly values to annual mean values.
+
+<u>**data preparation (annual aggregation) for jungfraujoch**</u>
+```{r jungfraujoch_temperature_data_preparation_annual, include = TRUE, echo = TRUE, results = 'hide'}
+# create a year column
+df_jungfraujoch_year <- df_jungfraujoch_reduced %>%
+  mutate(Year = year(reference_timestamp))
+
+# aggregate to annual mean
+df_jungfraujoch_annual <- df_jungfraujoch_year %>%
+  group_by(station_abbr, Year) %>%
+  summarise(temp_mean_C = mean(temp_mean_C, na.rm = TRUE), .groups = "drop")
+
+# convert to ts object
+ts_jungfraujoch_annual <- ts(df_jungfraujoch_annual$temp_mean_C,
+                             start = min(df_jungfraujoch_annual$Year),
+                             end = max(df_jungfraujoch_annual$Year),
+                             frequency = 1)
+
 ```
 
 ## Glacier
@@ -713,9 +731,9 @@ To formally assess the stationarity of the time series, we applied the Augmented
 ## Temperature Jungfraujoch
 
 ### Annual mean temperature
-The annual mean temperature shows a trend starting around 1980. Additionally the ACF shows a slow decay indicating non-stationarity likely due to this trend. The PACF displays a clear cut-off at lag 2, indicating an AR(2) process. The Augmented Dickey-Fuller test further indicates non-stationarity with a non-significant p-value (p = .53).
+The annual mean temperature shows a trend starting around 1980. Additionally the ACF shows a slow decay indicating non-stationarity likely due to this trend. The PACF displays a clear cut-off at lag 2, indicating an AR(2) process. The ADF test further indicates non-stationarity with a non-significant p-value (p = .53).
 
-<u>**Jungfraujoch annually ACF and PACF**</u>
+<u>**Jungfraujoch temperature annual**</u>
 ```{r jungfraujoch_annual_temperature_acf_pacf, include = TRUE}
 plot(ts_jungfraujoch_annual)
 # acf and pacf
@@ -726,34 +744,39 @@ pacf(ts_jungfraujoch_annual)
 adf.test(ts_jungfraujoch_annual)
 ```
 
-After differencing the ACF decays quickly. The PACF shows a mean reversion (negative partial autocorrelation) with a remaining AR process.
+After differencing the plot shows no visible trend. The ACF decays quickly while the PACF shows a mean reversion (negative partial autocorrelation) with a remaining AR process. The ADF test no indicates stationarity as well (p = .01).
 
-<u>**Jungfraujoch annually decomposition**</u>
+<u>**Jungfraujoch temperature annual after differencing**</u>
 ```{r jungfraujoch_annual_temperature_decomposition, include = TRUE}
 # differencing
 ts_temp_diff <- diff(ts_jungfraujoch_annual)
-# check adf
-adf.test(ts_temp_diff)
+# plot ts
+plot(ts_temp_diff)
 # check ACF and PACF of differenced series
 par(mfrow=c(1,2))
 acf(ts_temp_diff, main="ACF: Differenced Temperature", lag.max=20)
 pacf(ts_temp_diff, main="PACF: Differenced Temperature", lag.max=20)
+# check adf
+adf.test(ts_temp_diff)
 ```
 
 ### Monthly mean temperature
 
-The ACF shows a strong seasonal pattern reflecting the annual temperature cycle. The PACF indicates that monthly mean temperatures are influenced by the previous month (lag 1). Then shows a negative connection for the next few months (lags 2 to 6) and a positive connection again (lags 8 to 13). This is likely due to temperature changes following a seasonal pattern, where each month corresponds to a specific period (e.g. season).
+The ACF shows a strong seasonal pattern reflecting the seasonal temperature cycle. The PACF indicates that monthly mean temperatures are influenced by the previous month (lag 1). Then shows a negative connection for the next few months (lags 2 to 6) and a positive connection again (lags 8 to 13). This is likely due to temperature changes following a seasonal pattern, where each month corresponds to a specific period (e.g. season). Despite the clear seasonality in the monthly temperature the ADF test indicates stationarity (p = .01).
 
 <u>**Jungfraujoch ACF and PACF**</u>
 ```{r jungfraujoch_monthly_temperature_acf_pacf, include = TRUE}
+# plot
+plot(ts_jungfraujoch)
 # acf and pacf
 par(mfrow=c(1,2))
 acf(ts_jungfraujoch) # acf indicates seasonality
 pacf(ts_jungfraujoch) # damped sinusoid
+# adf
+adf.test(ts_jungfraujoch)
 ```
 
-We observed that larger seasonal windows slightly reduced autocorrelations in the remainder, whereas the PACF improved notably when using a large trend window. An s.window of 37 and a t.window of 121 showed the most satisfying result.
-The Augmented-Dickey-Fuller test was used to formally check stationarity of the remainder. The significant result (p < .01) indicates stationarity.
+After testing different windows for STL decomposition, we observed that larger seasonal windows slightly reduced autocorrelations in the remainder, whereas the PACF improved notably when using a large trend window. An s.window of 37 and a t.window of 121 showed the most satisfying result. The ADF test was used again to formally check stationarity of the remainder. The significant result (p < .01) indicates stationarity.
 
 <u>**Jungfraujoch Temperature STL Decomposition**</u>
 ```{r jungfraujoch_temperature_stl_decomposition, include = TRUE}
@@ -818,14 +841,11 @@ write.csv(df_jungfraujoch_processed, "../data/processed/jungfraujoch_temperature
 saveRDS(df_jungfraujoch_processed, "../data/processed/jungfraujoch_temperature.rds")
 ```
 
-## Glacier
-
-
 ## Glacier Mass Balance
 
 ### Annual glacier mass balance
 
-It looks like there is a potential downward trend starting around 2010. The ACF and PACF indicate stationarity, whereas the Augmented Dickey-Fuller test is not significant (p > .05) suggesting non-stationrarity. Since glacier-mass balance represents an annual physical balance (with fluctuations around ~ 0) we decided not to difference it. 
+It looks like there is a potential downward trend starting around 2010. The ACF and PACF indicate stationarity, whereas the ADF test is not significant (p > .05) suggesting non-stationrarity. Since glacier-mass balance represents an annual physical balance (with fluctuations around ~ 0) we decided not to difference it. 
 
 <u>**Glacier mass balance annually ACF and PACF**</u>
 ```{r glacier_annual_mass_balance_acf_pacf, include = TRUE}
@@ -837,10 +857,6 @@ acf(ts_glacier_annually)
 pacf(ts_glacier_annually)
 # adf
 adf.test(ts_glacier_annually)
-
-# Also check visually for trend
-plot(ts_glacier_annually, main="Glacier Mass Balance Over Time")
-abline(lm(ts_glacier_annually ~ time(ts_glacier_annually)), col="red")
 ```
 
 ### Monthly glacier mass balance
@@ -853,7 +869,7 @@ ts_seasonal <- diff(ts_glacier, lag = 12)
 adf_seasonal <- ur.df(ts_seasonal, type = "drift", selectlags = "AIC")
 summary(adf_seasonal)
 ```
-The original glacier series had strong trend and seasonal components and was not stationary. After seasonal differencing (lag=12) the series appears stationary: 
+The original monthly glacier series had strong trend and seasonal components and was not stationary. After seasonal differencing (lag=12) the series appears stationary: 
 The ADF test on the seasonally-differenced series strongly rejects a unit root since the test statistic (τ = –22.09) is far below the 1% critical value (–3.43), confirming that the series is stationary.
 
 ### STL Decomposition
@@ -886,11 +902,11 @@ saveRDS(df_glacier_monthly, "../data/processed/glacier_monthly_processed.rds")
 
 The ACF and PACF of the STL residuals provide further confirmation: both show no significant autocorrelation at any lag, indicating that the systematic seasonal and trend-driven patterns have been effectively removed and that the residual component can be treated as stationary noise.
 
-## Rainfall Brig
+## Precipitation Brig
 
 ### Annual Precipitation
 
-The total annual precipiation already is stationary.
+For total annual precipiation the ACF and PACF as well as the ADF test indicate stationarity (p = .01).
 
 <u>**Brig rain annual**</u>
 ```{r brig_rain_annual, include = TRUE}
@@ -901,20 +917,7 @@ acf(rain_ts_annual)
 pacf(rain_ts_annual)
 # adf
 adf.test(rain_ts_annual)
-# check for hidden non-stationarity / ARCH effects
-# Square the series
-rain_sq <- rain_ts_annual^2
-
-# Plot the squared series
-plot(rain_sq, type = "l", main = "Squared Annual Rainfall", ylab = "Squared values", xlab = "Year")
-
-# ACF and PACF of squared series
-par(mfrow = c(1,2))
-acf(rain_sq, main = "ACF of Squared Rainfall")
-pacf(rain_sq, main = "PACF of Squared Rainfall")
-par(mfrow = c(1,1))
 ```
-
 
 ### Monthly - Stationarity with stl
 
@@ -1104,8 +1107,6 @@ massa_monthly_mean_stl <- data.frame(
   Remainder = ts_watervolume_monthly_stl$time.series[,"remainder"]      # remainder
 )
 
-head(massa_monthly_mean_stl)  # for checking
-
 # # CSV export
 # write.csv(
 #   massa_monthly_mean_stl, 
@@ -1118,11 +1119,11 @@ saveRDS(massa_monthly_mean_stl, "../data/processed/stationary_monthly_mean_water
 ```
 
 
-# Merge Data
+## Merge Stationary Data
 
 For convenience for further modelling we merged the preprocessed datasets jungfraujoch_temperature, glacier_mass_balance, massa_waterlevel and brig_rain by the date column. Due to different start and end dates we chose to keep the overlapping time period (01/01/1981 to 01/12/2020) in order to get a complete dataset.
 
-<u>**Merge data*</u>
+<u>**Merge data**</u>
 ```{r merge_data, include = TRUE}
 # -----------------------------
 # 1) Load data
@@ -1268,37 +1269,21 @@ saveRDS(ts_multivariate, "../data/processed/ts_multivariate.rds")
 
 # Modelling
 
-## Climate and Glacier Melt (annual data)
+## Climate-Glacier Model (Annual)
 
 First we examine the relationships between climate variables (mean temperature and total precipitation) with glacier mass balance on a yearly level.
 
 ### Cross-Correlation Analysis (CCF)
 
-We use ccf to identify if there are any lagged effects of climate on glacier melt. This ensures that only variables with meaningful delayed influence will be included as predictors later on.
+We use CCF to identify if there are any lagged effects of climate on glacier melt. This ensures that only variables with meaningful delayed influence will be included as predictors later on.
 
-<u>**CCF Temperature and Glacier**</u>
+#### Temperature vs. Glacier
+
+The top left plot shows how changes in the glacier mass-balance depend on the absolute (non-differenced) air temperature. The CCF is significant at lag 1. This indicates that the previous year's temperature affects the current glacier mass-balance. Since the relationship is negative, higher temperatures are associated with lower glacier mass-balance. Yet since CCF assumes stationarity the result should be interpreted with caution. When using the differenced temperature, the CCF shows no significant lags. This might indicate that year-to-year changes in temperature do not strongly drive glacier mass balance. Therefore for further modelling with ARIMAX temperature lagged once will be included in levels as an external factor.
+
+<u>**CCF Temperature and Glacier mass balance**</u>
 ```{r ccf_temperature_glacier, include = TRUE, warning=FALSE, message=FALSE}
-# # Find overlapping period
-# common_start <- max(start(ts_temp_diff)[1], start(ts_glacier_annually)[1], start(rain_ts_annual)[1])
-# common_end <- min(end(ts_temp_diff)[1], end(ts_glacier_annually)[1], end(rain_ts_annual)[1])
-# 
-# # Extract common periods
-# ts_temp_aligned <- window(ts_temp_diff, start=common_start, end=common_end)
-# ts_glacier_aligned <- window(ts_glacier_annually, start=common_start, end=common_end)
-# ts_precip_aligned <- window(rain_ts_annual, start=common_start, end=common_end)
-# 
-# par(mfrow = c(1, 2))
-# # Temperature changes affecting glacier balance
-# ccf(ts_glacier_aligned, ts_temp_aligned, main="Glacier & Temperature")
-# ccf(ts_temp_aligned, ts_glacier_aligned, main="Temperature & Glacier")
-# 
-# # create lagged temperature ts (ccf -> lag 1 significant)
-# temp_lag1 <- stats::lag(ts_temp_aligned, -1)
-# cor(ts_glacier_aligned, temp_lag1)
-
-# -----------------------------
-# Option 1: Temperature in levels (non-differenced)
-# -----------------------------
+# option 1: temperature in levels
 common_start2 <- max(start(ts_jungfraujoch_annual)[1], start(ts_glacier_annually)[1], start(rain_ts_annual)[1])
 common_end2   <- min(end(ts_jungfraujoch_annual)[1],   end(ts_glacier_annually)[1],   end(rain_ts_annual)[1])
 
@@ -1310,48 +1295,64 @@ par(mfrow = c(1,2))
 ccf(ts_glacier_level_aligned, ts_temp_level_aligned, main="Glacier & Temp (levels)")
 ccf(ts_temp_level_aligned, ts_glacier_level_aligned, main="Temp (levels) & Glacier")
 
-# -----------------------------
-# Option 2: Differenced temperature
-# -----------------------------
+# option 2: differenced temperature
 
 ccf(ts_glacier_level_aligned, diff(ts_temp_level_aligned), main="Glacier & Temp (diff)")
 ccf(diff(ts_temp_level_aligned), ts_glacier_level_aligned, main="Temp (diff) & Glacier")
-# -----------------------------
+
+```
+
+We also check the correlation between the temperature lagged once with the glacier mass balance, which is relatively weak (r = -0.19). While temperature has some effect, other factors likely influence the glacier mass balance as well.
+
+<u>**Correlation: Temperature lag 1 with Glacier mass balance**</u>
+```{r temperature_lagged_correlation, include = TRUE, warning=FALSE, message=FALSE}
 # Lag temperature by 1 year
 temp_lag1 <- stats::lag(ts_temp_level_aligned, -1)
 # cor(ts_glacier_level_aligned, ts_temp_level_aligned)
 cor(ts_glacier_level_aligned, temp_lag1, use="complete.obs")
-
 ```
 
+#### Precipitation vs. Glacier
 
+We now look at the CCF between total annual precipiation and glaicer mass balance. The left plot shows how changes in precipitations might affect glacier mass-balance. The CCF displays no significant lags, indicating no relationship between the two variables. The correlation (r = -0.04) is very weak as well. Since the precipitation was measured in the valley in Brig, it likely doesn't reflect the snow accumulation on the glacier due to substantial elevation differences. As glaciers respond primarily to seasonal snowfall (in winter), using total annual precipitation may not provide sufficient temporal resolution to capture this effect.
 
-
-The left plot shows how changes in the glacier mass-balance depend on the absolute (non-differenced) air temperature. The CCF is significant at lag 1. This indicates that the previous year's temperature affects the current glacier mass-balance. Since the relationship is negative, higher temperatures are associated with lower glacier mass-balance. Yet the correlation (r = -0.19) is relativley weak and since ccf assumes stationarity the result should be interpreted with caution. When using the differenced temperature, the ccf shows no significant lags. This might indicate that year-to-year changes in temperature do not strongly drive glacier mass balance. Therefore for further modelling with ARIMAX temperature will be included in levels as an external factor.
-
-<u>**CCF Precipitation and Glacier**</u>
-```{r ccf_precipitation_glacier, include = TRUE, warning=FALSE, message=FALSE}
+<u>**CCF Precipitation and Glacier mass balance**</u>
+```{r correlation_precipitation_glacier, include = TRUE, warning=FALSE, message=FALSE}
 par(mfrow = c(1, 2))
 # Precipitation affecting glacier balance 
 ccf(ts_glacier_level_aligned, ts_rain_level_aligned, main="Glacier & Precipitation")
 ccf(ts_rain_level_aligned, ts_glacier_level_aligned, main="Precipitation & Glacier")
 ```
 
-The left plot shows how changes in precipitations might affect glacier mass-balance. The CCF displays no significant lags, indicating no relationship between the two variables. The correlation (r = -0.04) is very weak as well. Since the precipitation was measured in the valley in Brig, it likely doesn't reflect the snow accumulation on the glacier due to substantial elevation differences. As glaciers respond primarily to seasonal snowfall (in winter), using total annual precipitation may not provide sufficient temporal resolution to capture this effect.
+<u>**Correlation: Precipitation with Glacier mass balance**</u>
+```{r ccf_precipitation_glacier, include = TRUE, warning=FALSE, message=FALSE}
+# correlation
+cor(ts_glacier_level_aligned, ts_rain_level_aligned)
+```
 
 ### ARIMAX
 
-We chose to use an ARIMAX model to account for the autocorrelation in the glacier mass balance time series while incorporating temperature as an exogenous factor. This approach allows us to quantify and forecast the influence of climate variables on glacier mass changes over time. Total annual precipitation was not included, as it appeared to explain no variance in glacier mass-balance.
+We chose to use an ARIMAX model to account for the autocorrelation in the glacier mass balance time series while incorporating temperature as an exogenous variable. This approach allows us to quantify and forecast the influence of climate variables on glacier mass changes over time. Total annual precipitation was not included, as it appeared to explain no variance in glacier mass-balance.
 
-We applied auto.arima() to the glacier mass-balance time series, suggesting an ARIMA(0,0,3) model. An exhaustive grid search over AR, differencing, and MA orders indicated ARIMA(2,1,2) had a slightly lower AIC, but the improvement was minimal. Given the simplicity and stationary residuals of the ARIMA(0,0,3) model, we chose it for further analysis.
+We applied auto.arima() to the glacier mass-balance time series, suggesting an ARIMA(0,0,3) model with non-zero mean.
 
-<u>**ARIMA Glacier Mass Balance**</u>
-```{r arima_glacier_mass_balance, include = TRUE, warning=FALSE, message=FALSE}
+<u>**Auto Arima**</u>
+```{r auto.arima_glacier_mass_balance, include = TRUE, warning=FALSE, message=FALSE}
 # determine ARIMA order
 fit.auto <- auto.arima(ts_glacier_level_aligned, stationary=TRUE, seasonal=FALSE)
 summary(fit.auto)
-checkresiduals(fit.auto)
+```
 
+<u>**Auto Arima Residual Check**</u>
+```{r auto.arima_residuals_glacier_mass_balance, echo=TRUE, warning=FALSE, message=FALSE}
+checkresiduals(fit.auto)
+```
+
+An exhaustive grid search over AR, differencing, and MA orders indicated ARIMA(2,1,2) had a slightly lower AIC, but the improvement was minimal. Given the simplicity and stationary residuals of the ARIMA(0,0,3) model, we chose it for further analysis.
+
+<u>**Grid search for model order**</u>
+```{r arima_grid_search_glacier_mass_balance, include = TRUE, results = 'hide', warning=FALSE, message=FALSE}
+# determine ARIMA order
 best_aic <- Inf
 best_order <- c(0,0,0)
 
@@ -1372,7 +1373,19 @@ best_order
 best_aic
 ```
 
-<u>**ARIMAX Glacier Model**</u>
+Next we included the lagged temperature as an exogeneous variable in the ARIMAX. The model estimates the effect of temperature on glacier mass balance while taking the MA(3) autocorrelation into account. 
+
+$$
+\text{Glacier Balance}_t = -2380.9160 
+- 270.3527 \cdot \text{Temperature}_{t-1} 
++ \varepsilon_t 
++ 0.1237\,\varepsilon_{t-1} 
+- 0.0712\,\varepsilon_{t-2} 
++ 0.4184\,\varepsilon_{t-3}
+$$
+The negative coefficient for temperature indicates that higher previous-year temperatures tend to be associated with lower glacier mass balance. The moving average terms account for short-term dependencies in glacier mass balance residuals, meaning past shocks influence the current value. 
+
+<u>**ARIMAX Glacier Model with Temperature**</u>
 ```{r arimax_glacier_model, include = TRUE, warning=FALSE, message=FALSE}
 # remove first observation because of lagging
 glacier_model_data <- ts_glacier_level_aligned[-1]
@@ -1384,80 +1397,25 @@ arimax_glacier <- Arima(glacier_model_data,
                         xreg = temp_lag1_data)
 # check model
 summary(arimax_glacier)
-# accuracy
-accuracy(arimax_glacier)
 ```
+For the model fit the residual autocorrelation is low (ACF1 ~ 0.033) and training errors are reasonable (RMSE ~ 565 mm). The visual inspection of the residuals suggests that the model captures temporal structures and the effect of temperature adequately. Plotting the actual observations against the fitted values shows that the ARIMAX captures the main trend in glacier mass balance influenced by previous-year temperature.
 
 <u>**ARIMAX Glacier Model Diagnostics**</u>
 ```{r arimax_glacier_model_diagnostics, include = TRUE, warning=FALSE, message=FALSE}
 # check residuals
 checkresiduals(arimax_glacier)
-# ACF and PACF of residuals
-par(mfrow=c(1,2))
-acf(residuals(arimax_glacier))
-pacf(residuals(arimax_glacier))
-# Model fit statistics
-AIC(arimax_glacier)
-accuracy(arimax_glacier)
 # Plot fitted vs actual
 par(mfrow = c(1, 1))
 plot(glacier_model_data, main="Glacier Balance: Actual vs Fitted")
 lines(fitted(arimax_glacier), col="red")
 legend("topright", c("Actual", "Fitted"), col=c("black", "red"), lty=1)
-
-# Forecast capability test
-forecast(arimax_glacier, h=5, 
-         xreg=cbind(tail(temp_lag1_data, 5))) # check interpretation
 ```
-
-<u>**Forecast Glacier Model**</u>
-```{r forecast_glacier_model, include = TRUE, warning=FALSE, message=FALSE}
-# Forecast temperature
-temp_model <- auto.arima(ts_temp_level_aligned)
-h <- 5  # number of steps ahead to forecast
-temp_forecast <- forecast(temp_model, h = h)
-future_temp <- temp_forecast$mean
-# Temperature forecast
-plot(temp_forecast, main = "Temperature Forecast", xlab = "Time", ylab = "Temperature")
-
-# Forecast precipitation
-#precip_model <- auto.arima(ts_precip_aligned)
-#precip_forecast <- forecast(precip_model, h = h)
-#future_precip <- precip_forecast$mean
-# Precipitation forecast
-#plot(precip_forecast, main = "Precipitation Forecast", xlab = "Time", ylab = "Precipitation")
-
-# lagged temperature for forecast: use last observed temp for first step
-last_temp <- tail(ts_temp_level_aligned, 1)
-future_temp_lag1 <- c(last_temp, future_temp[-length(future_temp)])
-
-# combine regressors
-future_xreg <- cbind(future_temp_lag1)
-
-forecast_glacier <- forecast(arimax_glacier, h = h, xreg = future_xreg)
-
-# Inspect forecast
-print(forecast_glacier)
-plot(forecast_glacier)
-```
-
-$$
-\text{Glacier Balance}_t = -2380.9160 
-- 270.3527 \cdot \text{Temperature}_{t-1} 
-+ \varepsilon_t 
-+ 0.1237\,\varepsilon_{t-1} 
-- 0.0712\,\varepsilon_{t-2} 
-+ 0.4184\,\varepsilon_{t-3}
-$$
-
-
-- 1°C warming in previous year → 271 mm w.e. additional mass loss
-- Precipitation doesn't significantly affect annual balance
-- Glacier has 1-year climate memory
 
 ### Climate Scenario-Based Projections
 
-The climate projections for Jungfraujoch are from the MeteoSchweiz report "Klimaszenarien Schweiz – eine regionale Übersicht" which is based on the Swiss Climate Scenarios CH2011.
+To assess future glacier mass balance of Aletsch Glacier under different climate scenarios we used temperature projections for Jungfraujoch derived from the MeteoSchweiz report "Klimaszenarien Schweiz – eine regionale Übersicht" which is based on the Swiss Climate Scenarios CH2011 ([MeteoSchweiz](https://www.nccs.admin.ch/nccs/de/home/klimawandel-und-auswirkungen/schweizer-klimaszenarien/schweizer-klimaszenarien-im-ueberblick.html#-891137887)).These scenarios provide regional temperature projections for 2060 under different warming assumptions (low, medium and high). 
+
+By 2060, glacier mass balance at Jungfraujoch is projected to be negative under all warming scenarios, indicating continued ice loss. Cumulative losses increase with warming: −41,265 mm w.e. for low, −45,641 mm w.e. for medium, and −50,018 mm w.e. for high warming. Even moderate temperature increases (2–3 °C) result in substantial retreat, while higher warming accelerates mass loss. These results highlight the sensitivity of glaciers to temperature changes and the importance of climate mitigation for preserving alpine ice resources.
 
 <u>**Climate Scenario-Based Projections**</u>
 ```{r climate_scenario_based_projections, include = TRUE, warning=FALSE, message=FALSE}
@@ -1550,78 +1508,44 @@ final_projections <- data.frame(
 print(final_projections)
 ```
 
-<u>**Simulation form ARIMAX**</u>
-```{r simulation_arimax, include = TRUE, warning=FALSE, message=FALSE}
-library(forecast)
+The 95% confidence intervals (CIs) around the glacier mass balance projections represent statistical uncertainty in the ARIMAX model estimates. They account for variability in the model parameters and residuals, providing a range in which the true glacier mass balance is likely to fall. In our case the CIs are quite wide for all three scenarios, therefore conclusions should only be drawn with caution.
 
-# Parameters
-nsim <- 1000
-h <- years_to_project
-probs <- c(0.025, 0.25, 0.5, 0.75, 0.975)
+<u>**Confidence Intervalls**</u>
+```{r confidence_intervals, include = TRUE, warning=FALSE, message=FALSE}
+# Years for the forecast
+forecast_years <- seq(max(as.numeric(time(ts_glacier_level_aligned))) + 1, 2060, by = 1)
 
-# Colors for scenarios
-scenario_colors <- list(
-  conservative = "green",
-  medium = "blue",
-  high_warming = "red"
-)
+# Set up 1 row x 3 columns for the panels
+par(mfrow = c(1, 3), mar = c(4, 4, 3, 1))  # adjust margins
 
-# Storage for quantiles
-scenario_qs <- list()
-
-# Run ensemble simulations for each scenario
-set.seed(123)
-for (sc in names(scenarios)) {
-  sim_mat <- matrix(NA, nrow = h, ncol = nsim)
-  for (i in seq_len(nsim)) {
-    sim_mat[, i] <- as.numeric(simulate(
-      arimax_glacier, nsim = h, xreg = scenarios[[sc]], bootstrap = TRUE
-    ))
-  }
-  scenario_qs[[sc]] <- apply(sim_mat, 1, quantile, probs = probs, na.rm = TRUE)
+# Function to plot a scenario with CI
+plot_scenario_CI <- function(proj, scenario_name, color) {
+  plot(forecast_years, proj$mean, type = "l", col = color, lwd = 2,
+       ylim = range(c(proj$lower[,2], proj$upper[,2])),
+       main = scenario_name,
+       xlab = "Year", ylab = "Mass Balance (mm w.e.)")
+  
+  # Add 95% CI as shaded polygon
+  polygon(c(forecast_years, rev(forecast_years)),
+          c(proj$lower[,2], rev(proj$upper[,2])),
+          col = adjustcolor(color, alpha.f = 0.2),
+          border = NA)
+  
+  # Add mean line on top
+  lines(forecast_years, proj$mean, col = color, lwd = 2)
 }
 
-# --- Plot ---
-plot(all_years[1:length(hist_data)], hist_data,
-     type = "l", col = "black", lwd = 2,
-     xlim = c(min(all_years), max(all_years)),
-     ylim = c(
-       min(unlist(scenario_qs), hist_data, na.rm = TRUE),
-       max(unlist(scenario_qs), hist_data, na.rm = TRUE)
-     ),
-     main = "Glacier Balance Climate Scenarios to 2060",
-     xlab = "Year", ylab = "Mass Balance (mm w.e.)")
+# Plot each scenario in its panel
+plot_scenario_CI(projections$conservative, "Low Warming", "green")
+plot_scenario_CI(projections$medium, "Medium Warming", "blue")
+plot_scenario_CI(projections$high_warming, "High Warming", "red")
 
-# Add vertical line marking forecast start
-abline(v = max(hist_years), lty = 2, col = "gray")
-
-# Plot each scenario with shaded fan
-for (sc in names(scenarios)) {
-  col <- scenario_colors[[sc]]
-  q <- scenario_qs[[sc]]
-
-  # Shaded 50% interval
-  polygon(c(forecast_years, rev(forecast_years)),
-          c(q["25%", ], rev(q["75%", ])),
-          col = adjustcolor(col, alpha.f = 0.3), border = NA)
-
-  # Shaded 95% interval
-  polygon(c(forecast_years, rev(forecast_years)),
-          c(q["2.5%", ], rev(q["97.5%", ])),
-          col = adjustcolor(col, alpha.f = 0.15), border = NA)
-
-  # Median line
-  lines(forecast_years, q["50%", ], col = col, lwd = 2)
-}
-
-legend("topright",
-       legend = c("Historical", "Conservative", "Medium", "High warming"),
-       col = c("black", "green", "blue", "red"),
-       lty = 1, lwd = 2, bty = "n")
+# Reset plotting layout to default
+par(mfrow = c(1, 1))
 
 ```
 
-## Climate-Glacier-River (monthly data)
+## Climate-River Model (Monthly)
 
 We now examine how climate-driven changes in glacier mass-balance affect the water level and discharge of Massa.
 
@@ -1629,11 +1553,13 @@ We now examine how climate-driven changes in glacier mass-balance affect the wat
 
 To investigate potential linear relationships between the different time series, we use the cross-correlation function (ccf). For this we only need the stationary remainder components of each time series, since we want to avoid spurious correlations caused by trends and seasonal components.
 
-When looking at the output of the cross-correlation function between Jungfraujoch temperature and glacier mass balance the correlations are very weak (|r| < 0.3), indicating little to no relationship between the two variables. At a first glance this result surprised us. Yet considering that the glaicer mass balance data had been transformed to show change from year to year (by differencing with a lag of 12), this finding made sense. Glaciers react slowly and mainly to long-term seasonal and yearly patterns, not to short monthly changes. Because the two datasets were on different time scales (monthly temperature and annually glacier mass balance), it was not possible to detect a direct correlation between them. The same argumentation applies to the cross-correlation function between glacier mass balance the waterlevel of the river Massa.
+#### Temperature vs. Glacier
+
+When looking at the output of the cross-correlation function between Jungfraujoch temperature and glacier mass balance the correlations are very weak (|r| < 0.3), indicating little to no relationship between the two variables. At a first glance this result surprised us. Yet considering that the glacier mass balance data had been transformed to show change from year to year (by differencing with a lag of 12), this finding made sense. Glaciers react slowly and mainly to long-term seasonal and yearly patterns, not to short monthly changes. Because the two datasets were on different time scales (monthly temperature and annually glacier mass balance), it was not possible to detect a direct correlation between them.
 
 <u>**CCF Jungfraujoch Temperature & Glacier Mass Balance**</u>
 ```{r ccf_jungfraujoch_temperature_glacier_mass_balance, include = TRUE, warning=FALSE, message=FALSE}
-# Scale the two series and convert to numeric vectors
+# convert to numeric vectors
 jungfrau <- as.numeric(ts_multivariate[, "remainder_jungfrau"])
 glacier  <- as.numeric(ts_multivariate[, "remainder_glacier"])
 
@@ -1645,15 +1571,18 @@ lines(scale(glacier), col = "blue", lwd = 2)
 legend("topright", legend = c("Temperature (Jungfraujoch)", "Glacier Mass Balance"),
        col = c("orange", "blue"), lty = 1, lwd = 2)
 
-
 par(mfrow = c(1, 2))
 # CCF: Temperature leads Glacier
 ccf(glacier, jungfrau, # temperature leads
-    main = "CCF: Glacier vs Temperature")
+    main = "Glacier vs Temperature")
 # CCF: Glacier leads Temperatues
 ccf(jungfrau, glacier, # glacier leads
-    main = "CCF: Temperature vs Glacier")
+    main = "Temperature vs Glacier")
 ```
+
+#### Glacier vs. Massa River
+
+The same argumentation as above applies to the cross-correlation function between glacier mass balance and the waterlevel and waterdischarge of the river Massa.
 
 <u>**CCF Glacier Mass Balance & Massa Waterlevel**</u>
 ```{r ccf_glacier_mass_balance_waterlevel, include = TRUE, warning=FALSE, message=FALSE}
@@ -1672,10 +1601,10 @@ legend("topright", legend=c("Waterlevel Massa", "Glacier Mass Balance"),
 par(mfrow = c(1, 2), mar = c(4, 4, 5, 1)) # bottom, left, top, right
 # CCF: Waterlevel leads Glacier
 ccf(glacier, waterlevel, # waterlevel leads
-    main = "CCF: Glacier vs Waterlevel")
+    main = "Glacier vs Waterlevel")
 # CCF: Glacier leads Waterlevel
 ccf(waterlevel, glacier, # glacier leads
-    main = "CCF: Waterlevel vs Glacier")
+    main = "Waterlevel vs Glacier")
 # Reset plotting parameters
 par(mfrow = c(1, 1), mar = c(5, 4, 4, 2) + 0.1)
 ```
@@ -1697,13 +1626,14 @@ legend("topright", legend=c("Waterdischarge Massa", "Glacier Mass Balance"),
 par(mfrow = c(1, 2), mar = c(4, 4, 5, 1)) # bottom, left, top, right
 # CCF: Waterlevel leads Glacier
 ccf(glacier, waterdischarge, # waterdischarge leads
-    main = "CCF: Glacier vs Waterdischarge")
+    main = "Glacier vs Waterdischarge")
 # CCF: Glacier leads Waterlevel
 ccf(waterdischarge, glacier, # glacier leads
-    main = "CCF: Waterdischarge vs Glacier")
+    main = "Waterdischarge vs Glacier")
 # Reset plotting parameters
 par(mfrow = c(1, 1), mar = c(5, 4, 4, 2) + 0.1)
 ```
+#### Temperature vs. Massa River
 
 For the cross-correlation function between the Jungfraujoch temperature and the waterlevels of Massa we can observe that temperature is leading with a weak yet significant positive correlations at lag 0.This indicates that higher temperatures are associated with slightly higher water levels in the same month, although the effect is small.
 
@@ -1724,10 +1654,10 @@ legend("topright", legend=c("Temperature Jungfraujoch", "Waterlevel Massa"),
 par(mfrow = c(1, 2))
 # CCF: Temperature leads Waterlevel
 ccf(waterlevel, jungfrau, 
-    main = "CCF: Waterlevel vs Temperature")
+    main = "Waterlevel vs Temperature")
 # CCF: Glacier leads Temperatues
 ccf(jungfrau, waterlevel,
-    main = "CCF: Temperature vs Waterlevel")
+    main = "Temperature vs Waterlevel")
 ```
 
 When considering water discharge instead of water level, the correlation at lag 0 is stronger. This indicates that the monthly water discharge of Massa responds directly and quickly to temperature changes. Higher temperatures lead to increased discharge, reflecting the immediate hydrological response from snow and glacier melt, while lower temperatures correspond to reduced discharge due to reduced melt and freezing.
@@ -1749,13 +1679,15 @@ legend("topright", legend=c("Temperature Jungfraujoch", "Waterdischarge Massa"),
 par(mfrow = c(1, 2))
 # CCF: Temperature leads Waterdischarge
 ccf(waterdischarge, jungfrau, 
-    main = "CCF: Waterdischarge vs Temperature")
+    main = "Waterdischarge vs Temperature")
 # CCF: Glacier leads Temperatues
 ccf(jungfrau, waterdischarge,
-    main = "CCF: Temperature vs Waterdischarge")
+    main = "Temperature vs Waterdischarge")
 ```
 
-The cross-correlation analysis between the monthly precipitations in Brig and the monthly waterlevels of Massa shows no significant relationship. Due to the use of monthly data it is possible that short-term effects were smoothed out. It might also be the case that precipitations in the valley in Brig does not reflect the hdydrological processes in the glacial upstream cachement of the river Massa. In further analysis snow and glacier melt should be taken into account as well. In addition, using the water discharge instead of water level could provide a more direct measure of the river's hydrological response.
+#### Precipitation vs. Massa River
+
+The cross-correlation analysis between the monthly precipitations in Brig and the monthly waterlevels of Massa shows no significant relationship. Due to the use of monthly data it is possible that short-term effects were smoothed out. It might also be the case that precipitations in the valley in Brig does not reflect the hdydrological processes in the glacial upstream cachement of the river Massa.
 
 <u>**CCF Precipitation Brig & Massa Waterlevel**</u>
 ```{r ccf_precipitation_waterlevel, include = TRUE, warning=FALSE, message=FALSE}
@@ -1774,13 +1706,14 @@ legend("topright", legend=c("Precipitation Brig", "Waterlevel Massa"),
 par(mfrow = c(1, 2), mar = c(4, 4, 5, 1)) # bottom, left, top, right
 # CCF: Precipitation leads Waterlevel
 ccf(waterlevel, precipitation, 
-    main = "CCF: Waterlevel vs Precipitation")
+    main = "Waterlevel vs Precipitation")
 # CCF: Waterlevel leads Precipitation
 ccf(precipitation, waterlevel,
-    main = "CCF: Precipitation vs Waterlevel")
+    main = "Precipitation vs Waterlevel")
 # Reset plotting parameters
 par(mfrow = c(1, 1), mar = c(5, 4, 4, 2) + 0.1)
 ```
+If we look at the waterdischarge instead, the CCF indicates significance at lag -5 and lag 6. This would mean that water discharge responds with a delay to precipitation (6 months lag) this could be due to snow melt. The correlation at lag -5 where water discharge leads precipitation might be spurious or due to seasonal patterns.
 
 <u>**CCF Precipitation Brig & Massa Waterdischarge**</u>
 ```{r ccf_precipitation_waterdischarge, include = TRUE, warning=FALSE, message=FALSE}
@@ -1799,40 +1732,52 @@ legend("topright", legend=c("Precipitation Brig", "Waterdischarge Massa"),
 par(mfrow = c(1, 2))
 # CCF: Precipitation leads Waterdischarge
 ccf(waterdischarge, precipitation, 
-    main = "CCF: Waterdischarge vs Precipitation")
+    main = "Waterdischarge vs Precipitation")
 # CCF: Waterdischarge leads Precipitation
 ccf(precipitation, waterdischarge,
-    main = "CCF: Precipitation vs Waterdischarge")
+    main = "Precipitation vs Waterdischarge")
 
 ```
-- precipitation leading at lag 6 --> dealyed run-off response due to snow accumulation and delayed melt?
-- waterdischarge leading at lag 5? doesn't make much sense
 
-###ARIMAX
+### ARIMAX
 
-<u>**Identify ARIMA structure**</u>
+For the ARIMAX we decided to focus on water discharge rather than water level, since it is more directly influenced by climate variables. 
+
+As a first step we applied auto.arima() to the waterdischarge time series, suggesting an ARIMA(0,0,1) model. An inspection of the residuals implied stationarity.
+
+<u>**Auto Arima**</u>
 ```{r auto_arima, include = TRUE, warning=FALSE, message=FALSE}
-# -----------------------------
-# 1) Auto ARIMA for water discharge
-# -----------------------------
+# auto arima for water discharge
 fit.auto <- auto.arima(waterdischarge, stationary = TRUE, seasonal = TRUE)
 summary(fit.auto)
+```
+<u>**Auto Arima Resiudal Check**</u>
+```{r auto_arima_residuals, include = TRUE, warning=FALSE, message=FALSE}
+checkresiduals(fit.auto)
+```
+We then included temperature (current month) and precipitation (lag 6) as exogeneous variables in the ARIMAX model to account for the immediate effect of temperature and the delayed hydrological response in precipitation. The model otuput suggests that higher temperatures in the current month lead to higher water discharge. This may reflect snow or ice melt, faster snowpack runoff, or seasonal processes that increase flow during warmer months. Precipitation from 6 months ago shows a statistically significant association with current discharge, but the effect size is very small and likely reflects seasonal patterns rather than a direct hydrological mechanism.
 
-# check acf/pacf
-par(mfrow = c(1, 2))
-acf(waterdischarge)
-pacf(waterdischarge)
+$$
+\text{Water Discharge}_t = −0.0467 
++ 1.4453 \cdot \text{Temperature}_{t} 
++ 0.0142 \cdot \text{Precipitation}_{t-6} 
++ \varepsilon_t 
+$$
 
-# -----------------------------
-# 2) Align series and remove NAs (if any)
-# -----------------------------
-complete_idx <- complete.cases(waterdischarge, jungfrau, precipitation)
+<u>**ARIMAX**</u>
+```{r ARIMAX, include = TRUE, warning=FALSE, message=FALSE}
+# align ts and lag precipitation
+# Lag precipitation by 6 (current month is lag 0)
+precip_lag6 <- dplyr::lag(precipitation, 6)  # negative lag shifts forward
+
+# Align series and remove NAs caused by lag
+complete_idx <- complete.cases(waterdischarge, jungfrau, precip_lag6)
 discharge_clean <- waterdischarge[complete_idx]
-temp_clean <- jungfrau[complete_idx]
-precip_clean <- precipitation[complete_idx]
+temp_clean <- jungfrau[complete_idx]          # lag 0, current month
+precip_clean <- precip_lag6[complete_idx]
 
 # -----------------------------
-# 3) Build ARIMAX model with current precipitation
+# 3) Build ARIMAX model with temperature lag 0 and precipitation lag 6
 # -----------------------------
 arimax_monthly <- Arima(discharge_clean,
                         order = c(0,0,1),      # From auto.arima
@@ -1840,30 +1785,27 @@ arimax_monthly <- Arima(discharge_clean,
                         include.constant = TRUE)
 
 summary(arimax_monthly)
+```
+The residuals have very low autocorrelation (ACF1 ~ 0.014), indicating that the model captures the main temporal structure of the series. The root mean squared error (RMSE ~ 4.47) indicates a reasonable average deviation between the observed and fitted values. Plotting the actual observations against the fitted values shows the ARIMAX model captures the main trend in water discharge. Yet fitted values are relatively flat compared to the observed variability. This reflects the limited ability of the ARIMAX to reproduce extreme fluctuations. 
+
+<u>**ARIMAX model fit**</u>
+```{r ARIMAX_model_fit, include = TRUE, warning=FALSE, message=FALSE}
+# check residuals
 checkresiduals(arimax_monthly)
-
-# -----------------------------
-# 4) Fitted vs observed
-# -----------------------------
+# Plot fitted vs actual
 par(mfrow = c(1, 1))
-fitted_values <- fitted(arimax_monthly)
+plot(discharge_clean, main="Water discharge: Actual vs Fitted")
+lines(fitted(arimax_monthly), col="red")
+legend("topright", c("Actual", "Fitted"), col=c("black", "red"), lty=1)
+```
+When using the ARIMAX to forecast the next 12 months we see a continuation of the main trend.
 
-plot(discharge_clean, type = "p", col = "black", pch = 16,
-     ylab = "Water Discharge", xlab = "Time",
-     main = "Observed vs Fitted Water Discharge")
-
-lines(fitted_values, col = "red", lwd = 2)  # fitted as red line
-
-legend("topright", legend = c("Observed", "Fitted"),
-       col = c("black", "red"), pch = c(16, NA), lty = c(NA, 1), lwd = 2)
-
-# -----------------------------
-# 5) Forecast future discharge
-# -----------------------------
-# Example: forecast next 12 months
+<u>**ARIMAX forecast**</u>
+```{r ARIMAX_forecast, include = TRUE, warning=FALSE, message=FALSE}
+# forecast next 12 months
 horizon <- 12
-future_temp <- rep(mean(temp_clean), horizon)        # replace with scenario if available
-future_precip <- rep(mean(precip_clean), horizon)   # replace with scenario if available
+future_temp <- rep(mean(temp_clean), horizon)        
+future_precip <- rep(mean(precip_clean), horizon) 
 
 forecast_values <- forecast(arimax_monthly,
                             h = horizon,
@@ -1872,8 +1814,11 @@ forecast_values <- forecast(arimax_monthly,
 # Plot forecast
 plot(forecast_values, main = "ARIMAX Forecast for Water Discharge",
      ylab = "Water Discharge", xlab = "Time")
-lines(discharge_clean, col = "black", lwd = 2) # add historical
+lines(discharge_clean, col = "black", lwd = 2)
+
 ```
+
+Since the ARIMAX is not suitable to assess the risk and frequency of rare high-discharge events, we applied extreme value theory (EVT) in our further analysis.
 
 ## Extreme Value Theory (EVT) {#EVT_Massa_Report}
 
@@ -2045,26 +1990,33 @@ What is not addressed in our EVT analysis, however, is the impact of the glacier
 
 # Conclusion
 
-This report examined how climate change is reshaping the Aletsch Glacier and the Massa River that supports the town of Brig. By combining historical climate data, statistical forecasting, and extreme value theory, the analysis provides insights into future water availability and flood risk. 
+This report examined how climate change is reshaping the Aletsch Glacier and the Massa River that supports the town of Brig. By combining historical climate data, statistical forecasting, and extreme value theory, the analysis provides insights into future glaicer melt, water availability and flood risk. 
 
-The results show that temperature is the main driver of glacier loss. Glacier mass balance reacts to the previous year’s temperature, meaning it has a one-year “climate memory.” The ARIMAX model quantifies this effect: each 1 °C rise in annual temperature leads to about 270 mm of extra glacier mass loss. Precipitation, as measured in the valley, has little influence. On a monthly scale, higher temperatures directly increase river discharge, showing the Massa reacts quickly to seasonal melt. 
+The results show that temperature is a main driver of glacier loss. Glacier mass balance responds to the previous year’s temperature, suggesting a one-year “climate memory.” The ARIMAX model shows a negative association between lagged temperature and glacier mass balance, meaning warmer years tend to coincide with lower glacier mass, after accounting for autocorrelated fluctuations in the series. Precipitation, as measured in the valley, has little effect.
 
 Extreme Value Theory indicates that, despite higher short-term flows, extreme discharges remain below the design limits of the Gibidum Dam. This means major flood risks are unlikely for Brig in the near future. The long-term retreat of the glacier, however, will reduce water storage and may destabilize surrounding slopes, increasing the risk of landslides or debris flows. For Brig and the Canton of Valais, this creates a dual challenge: managing higher seasonal flows now while preparing for eventual water scarcity as the glacier continues to shrink. 
 
 The forecasting framework developed in this report offers guidance for early-warning systems, hydropower planning, and adaptive land-use strategies. These findings strengthen the relevance of the UN Sustainable Development Goals by linking local glacier change to global climate action, clean energy, and sustainable water management. Climate adaptation is no longer a vague future goal but an urgent planning priority, requiring continued data collection, open stakeholder dialogue, and regular updates to forecasts to protect both people and alpine ecosystems.
 
-# Outlook
+# Outlook and Limitations
 
-In this section, we look ahead to the future and describe next steps that can be taken to take this research further. 
+Several limitations affect the interpretation and scope of this study, but they also highlight opportunities for future research:
 
-  * The current analysis would be greatly enhanced by data from the Massa hydro power project. This would help us identify how much artificial regulation of the Massa water levels is performed by the dam. Using this, we can extrapolate the true effect of the melting ice from the glacier on the river.
+  * *Temporal scale mismatch:* we used separate models to forecast annual glacier changes and monthly river flow, instead of one combined system. This prevents us from directly linking glacier melt to river discharge and limits quantification of the effect of glacier retreat on water supply. Future work should adopt integrated glacier–hydrology models.
   
-  * The project would benefit by extending the analysis to include other contributing factors such as solar radiation, greenhouse gas emissions and local topography such as slope and ascent. All these factors directly affect glacier melt rate thereby adding to rising water levels in the rivers.
+  * *Spatial representativeness:* climate data from Jungfraujoch and Brig may not reflect the full range of glacier conditions. To improve coverage it would be beneficial to include data from additional weather stations and to take into account gridded climate data for further spatial analysis.
   
-  * Considering a long-term plan, including research from other climate studies would be crucial in improving model accuracy by provide more context on global warming trends, comparative data and analyzing general patterns of how glacier melts affect rivers. 
+  * *Model assumptions:* ARIMAX assumes linear climate–glacier relationships, while glacier processes are complex and non-linear. Combining statistical and process-based models would better capture feedbacks, thresholds, and ice dynamics.
   
-  * For a future course of action, the analysis can be extended to other glaciers in Switzerland, and even further to the Alps as a whole. Owing to the large size and surface area of Aletsch glacier, it is more resilient to changing environmental conditions. Hence, studying other glaciers might show evidence of more pressing concerns.
-
+  * *Forecasting uncertainty:* our forecast for glacier melt is based on three different temperature scenarios, which account for part of the uncertainty in climate conditions. Yet they assume that past climate-glacier relationships will hold under extreme warming. Future research should continue to use multiple scenarios, expand uncertainty ranges and regularly update forecasts.
+  
+  * *Data gaps:* the current analysis would be greatly enhanced by data from the Massa hydro power project. This would help us identify how much artificial regulation of the Massa water levels is performed by the dam. Using this, we can extrapolate the true effect of the melting ice from the glacier on the river.
+  
+  * *Additional climate drivers:* the project would benefit by extending the analysis to include other contributing factors such as solar radiation, greenhouse gas emissions and local topography such as slope and ascent. All these factors directly affect glacier melt rate thereby adding to rising water levels in the rivers.
+  
+  * *Long-term perspective:* considering a long-term plan, including research from other climate studies would be crucial in improving model accuracy by provide more context on global warming trends, comparative data and analyzing general patterns of how glacier melts affect rivers. 
+  
+  * *Regional expansion:* for a future course of action, the analysis can be extended to other glaciers in Switzerland, and even further to the Alps as a whole. Owing to the large size and surface area of Aletsch glacier, it is more resilient to changing environmental conditions. Hence, studying other glaciers might show evidence of more pressing concerns.
 
 # Disclaimer for AI
 
