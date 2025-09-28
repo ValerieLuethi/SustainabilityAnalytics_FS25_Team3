@@ -49,6 +49,7 @@ library(ismev)    # for EVT gev.fit
 library(tidyverse)# for data handling (includes ggplot2, dplyr, tidyr, readr, lubridate)
 library(evd)      # for calculating HQ values in EVT
 library(zoo)      # for function 'yearmon'
+set.seed(1234) 
 ```
 
 # Introduction
@@ -1713,7 +1714,7 @@ ccf(precipitation, waterlevel,
 # Reset plotting parameters
 par(mfrow = c(1, 1), mar = c(5, 4, 4, 2) + 0.1)
 ```
-If we look at the waterdischarge instead, the CCF indicates significance at lag -5 and lag 6. This would mean that water discharge responds with a delay to precipitation (6 months lag) this could be due to snow melt. The correlation at lag -5 where water discharge leads precipitation might be spurious or due to seasonal patterns.
+If we look at the water discharge instead, the CCF indicates significance at lag -5 and lag 6. This would mean that water discharge responds with a delay to precipitation (6 months lag) this could be due to snow melt. The correlation at lag -5 where water discharge leads precipitation might be spurious or due to seasonal patterns.
 
 <u>**CCF Precipitation Brig & Massa Waterdischarge**</u>
 ```{r ccf_precipitation_waterdischarge, include = TRUE, warning=FALSE, message=FALSE}
@@ -1758,10 +1759,11 @@ checkresiduals(fit.auto)
 We then included temperature (current month) and precipitation (lag 6) as exogeneous variables in the ARIMAX model to account for the immediate effect of temperature and the delayed hydrological response in precipitation. The model otuput suggests that higher temperatures in the current month lead to higher water discharge. This may reflect snow or ice melt, faster snowpack runoff, or seasonal processes that increase flow during warmer months. Precipitation from 6 months ago shows a statistically significant association with current discharge, but the effect size is very small and likely reflects seasonal patterns rather than a direct hydrological mechanism.
 
 $$
-\text{Water Discharge}_t = −0.0467 
-+ 1.4453 \cdot \text{Temperature}_{t} 
-+ 0.0142 \cdot \text{Precipitation}_{t-6} 
-+ \varepsilon_t 
+\text{Water Discharge}_t = −0.0367 
++ 1.1547 \cdot \text{Temperature}_{t} 
++ 0.003 \cdot \text{Precipitation}_{t-6} 
++ \varepsilon_t
++ 0.1433\,\varepsilon_{t-1}
 $$
 
 <u>**ARIMAX**</u>
@@ -1783,10 +1785,11 @@ arimax_monthly <- Arima(discharge_clean,
                         order = c(0,0,1),      # From auto.arima
                         xreg = cbind(temp_clean, precip_clean),
                         include.constant = TRUE)
-
+rmse_val <- accuracy(arimax_monthly)[1,"RMSE"] # For dynamic text
 summary(arimax_monthly)
 ```
-The residuals have very low autocorrelation (ACF1 ~ 0.014), indicating that the model captures the main temporal structure of the series. The root mean squared error (RMSE ~ 4.47) indicates a reasonable average deviation between the observed and fitted values. Plotting the actual observations against the fitted values shows the ARIMAX model captures the main trend in water discharge. Yet fitted values are relatively flat compared to the observed variability. This reflects the limited ability of the ARIMAX to reproduce extreme fluctuations. 
+
+The residuals have very low autocorrelation (ACF1 ~ 0.014), indicating that the model captures the main temporal structure of the series. The root mean squared error (RMSE ~ `r round(rmse_val, 2)`) indicates a reasonable average deviation between the observed and fitted values. Plotting the actual observations against the fitted values shows the ARIMAX model captures the main trend in water discharge. Yet fitted values are relatively flat compared to the observed variability. This reflects the limited ability of the ARIMAX to reproduce extreme fluctuations. 
 
 <u>**ARIMAX model fit**</u>
 ```{r ARIMAX_model_fit, include = TRUE, warning=FALSE, message=FALSE}
@@ -1798,6 +1801,7 @@ plot(discharge_clean, main="Water discharge: Actual vs Fitted")
 lines(fitted(arimax_monthly), col="red")
 legend("topright", c("Actual", "Fitted"), col=c("black", "red"), lty=1)
 ```
+
 When using the ARIMAX to forecast the next 12 months we see a continuation of the main trend.
 
 <u>**ARIMAX forecast**</u>
